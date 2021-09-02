@@ -26,23 +26,18 @@ import net.fabricmc.lorenztiny.TinyMappingsReader;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 
 public class IntermediaryToHashedMojmapConverter {
+    public static final String CACHE_DIR = ".intermediaryhashedmojmapconverter";
 
     public static void main(String[] args) throws IOException {
         List<String> argList = List.of(args);
         System.out.println(argList);
 
-        Path inputPath = getArgProperty("-DquiltInputFiles", argList, Path.of(System.getProperty("user.dir")), Path::of);
-        Path outputPath = getArgProperty("-DquiltOutputDirectory", argList, Path.of(System.getProperty("user.dir"), "remapped"), Path::of);
-        String minecraftVersion = getArgProperty("-DquiltMinecraft", argList, "1.17", Function.identity());
+        Path inputPath = getArgProperty("quilt.inputFiles", "-DquiltInputFiles", argList, Path.of(System.getProperty("user.dir")), Path::of);
+        Path outputPath = getArgProperty("quilt.outputDirectory", "-DquiltOutputDirectory", argList, Path.of(System.getProperty("user.dir"), "remapped"), Path::of);
+        String minecraftVersion = getArgProperty("quilt.minecraft", "-DquiltMinecraft", argList, "1.17", Function.identity());
         Files.createDirectories(outputPath);
 
-        checkAndCreateTinyCache(minecraftVersion, "intermediary", "-v2");
-        checkAndCreateTinyCache(minecraftVersion, "hashed-mojmap", "");
-
-        MappingSet officialToIntermediary = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", "intermediary", minecraftVersion + ".tiny").toFile()))), "official", "intermediary").read();
-        MappingSet officialToHashed = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", "hashed-mojmap", minecraftVersion + ".tiny").toFile()))), "official", "hashed").read();
-
-        MappingSet intermediaryToHashed = MappingSet.create().merge(officialToIntermediary.reverse()).merge(officialToHashed);
+        MappingSet intermediaryToHashed = getIntermediaryToHashed(minecraftVersion);
 
         if (inputPath.toFile().isDirectory()) {
             iterateOverDirectory(inputPath, Path.of("."), outputPath, intermediaryToHashed);
@@ -111,8 +106,18 @@ public class IntermediaryToHashedMojmapConverter {
         Files.write(outputPath.resolve(inputPath.getFileName()), lines);
     }
 
-    private static void checkAndCreateTinyCache(String minecraftVersion, String name, String classifier) throws IOException {
-        Path cachedFilePath = Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", name, minecraftVersion + ".jar");
+    public static MappingSet getIntermediaryToHashed(String minecraftVersion) throws IOException {
+        checkAndCreateTinyCache(minecraftVersion, "intermediary", "-v2");
+        checkAndCreateTinyCache(minecraftVersion, "hashed-mojmap", "");
+
+        MappingSet officialToIntermediary = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), CACHE_DIR, "intermediary", minecraftVersion + ".tiny").toFile()))), "official", "intermediary").read();
+        MappingSet officialToHashed = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), CACHE_DIR, "hashed-mojmap", minecraftVersion + ".tiny").toFile()))), "official", "hashed").read();
+
+        return MappingSet.create().merge(officialToIntermediary.reverse()).merge(officialToHashed);
+    }
+
+    public static void checkAndCreateTinyCache(String minecraftVersion, String name, String classifier) throws IOException {
+        Path cachedFilePath = Path.of(System.getProperty("user.home"), CACHE_DIR, name, minecraftVersion + ".jar");
         if (!cachedFilePath.toFile().exists()) {
             URL downloadableMavenURL = new URL("https://maven.quiltmc.org/repository/release/org/quiltmc/" + name + "/" + minecraftVersion + "/" + name + "-" + minecraftVersion + classifier + ".jar");
             Files.createDirectories(cachedFilePath.getParent());
@@ -124,12 +129,19 @@ public class IntermediaryToHashedMojmapConverter {
         }
     }
 
-    private static <T> T getArgProperty(String name, List<String> args, T defaultValue, Function<String, T> converter) {
-        int propertyIndex = args.indexOf(name);
-        if (propertyIndex == -1) {
-            System.out.println("Property " + name + " was not set. Defaulting to " + defaultValue);
-            return defaultValue;
+    // We have `name` for backwards compatibility
+    public static <T> T getArgProperty(String key, String name, List<String> args, T defaultValue, Function<String, T> converter) {
+        String value;
+        if (System.getProperties().contains(key)) {
+            value = System.getProperty(key);
+        } else {
+            int propertyIndex = args.indexOf(name);
+            if (propertyIndex == -1) {
+                System.out.println("Property " + name + " was not set. Defaulting to " + defaultValue);
+                return defaultValue;
+            }
+            value = args.get(propertyIndex + 1);
         }
-        return converter.apply(args.get(propertyIndex + 1));
+        return converter.apply(value);
     }
 }
