@@ -35,7 +35,7 @@ public class Patch {
 
         // Block data
         boolean readingBlock = false;
-        List<Map.Entry<String, DiffBlock.LineType>> blockDiffLines = new ArrayList<>();
+        List<DiffLine> blockDiffLines = new ArrayList<>();
         int blockFromLine = -1;
         int blockFromSize = -1;
         int blockFromRemaining = -1;
@@ -116,13 +116,13 @@ public class Patch {
             // Read block
             String fileLine = line.substring(1); // remove diff indent
             if (line.startsWith("-")) {
-                blockDiffLines.add(new AbstractMap.SimpleImmutableEntry<>(fileLine, DiffBlock.LineType.REMOVED));
+                blockDiffLines.add(new DiffLine(fileLine, DiffLine.LineType.REMOVED));
                 --blockFromRemaining;
             } else if (line.startsWith("+")) {
-                blockDiffLines.add(new AbstractMap.SimpleImmutableEntry<>(fileLine, DiffBlock.LineType.ADDED));
+                blockDiffLines.add(new DiffLine(fileLine, DiffLine.LineType.ADDED));
                 --blockToRemaining;
             } else {
-                blockDiffLines.add(new AbstractMap.SimpleImmutableEntry<>(fileLine, DiffBlock.LineType.UNCHANGED));
+                blockDiffLines.add(new DiffLine(fileLine, DiffLine.LineType.UNCHANGED));
                 --blockFromRemaining;
                 --blockToRemaining;
             }

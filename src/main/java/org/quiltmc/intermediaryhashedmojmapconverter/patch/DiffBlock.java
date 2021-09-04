@@ -11,9 +11,9 @@ public class DiffBlock {
     private final int sourceSize;
     private final int destLine;
     private final int destSize;
-    private final List<Map.Entry<String, LineType>> diffLines;
+    private final List<DiffLine> diffLines;
 
-    public DiffBlock(int sourceLine, int sourceSize, int destLine, int destSize, List<Map.Entry<String, LineType>> diffLines) {
+    public DiffBlock(int sourceLine, int sourceSize, int destLine, int destSize, List<DiffLine> diffLines) {
         this.sourceLine = sourceLine;
         this.sourceSize = sourceSize;
         this.destLine = destLine;
@@ -40,44 +40,26 @@ public class DiffBlock {
 
     public List<String> getDiff() {
         List<String> diff = new ArrayList<>();
-        for (Map.Entry<String, LineType> lineEntry : this.diffLines) {
-            String linePrefix;
-            switch (lineEntry.getValue()) {
-                case ADDED:
-                    linePrefix = "+";
-                    break;
-                case REMOVED:
-                    linePrefix = "-";
-                    break;
-                case UNCHANGED:
-                default:
-                    linePrefix = " ";
-                    break;
-            }
-            diff.add(linePrefix + lineEntry.getKey());
+        for (DiffLine lineEntry : this.diffLines) {
+            diff.add(lineEntry.getDiffFormattedLine());
         }
 
         return diff;
     }
 
-    public List<String> getSource() {
-        return this.filterLineType(type -> type != LineType.ADDED);
-    }
-
     public List<String> getDestination() {
-        return this.filterLineType(type -> type != LineType.REMOVED);
+        List<String> res = new ArrayList<>();
+        for (DiffLine diffLine : this.getDiffLines()) {
+            if (diffLine.getType() != DiffLine.LineType.REMOVED) {
+                res.add(diffLine.getLine());
+            }
+        }
+
+        return res;
     }
 
-    public List<String> getAddedLines() {
-        return this.filterLineType(type -> type == LineType.ADDED);
-    }
-
-    public List<String> getRemovedLines() {
-        return this.filterLineType(type -> type == LineType.REMOVED);
-    }
-
-    public List<String> getUnmodifiedLines() {
-        return this.filterLineType(type -> type == LineType.UNCHANGED);
+    public List<DiffLine> getDiffLines() {
+        return this.diffLines;
     }
 
     public int getSourceLine() {
@@ -88,25 +70,11 @@ public class DiffBlock {
         return this.sourceSize;
     }
 
-    public int getDestSize() {
-        return this.destSize;
-    }
-
     public int getDestLine() {
         return this.destLine;
     }
 
-    public List<Map.Entry<String, LineType>> getDiffLines() {
-        return this.diffLines;
-    }
-
-    private List<String> filterLineType(Predicate<LineType> predicate) {
-        return this.diffLines.stream().filter(entry -> predicate.test(entry.getValue())).map(Map.Entry::getKey).collect(Collectors.toList());
-    }
-
-    public enum LineType {
-        REMOVED,
-        ADDED,
-        UNCHANGED;
+    public int getDestSize() {
+        return this.destSize;
     }
 }
