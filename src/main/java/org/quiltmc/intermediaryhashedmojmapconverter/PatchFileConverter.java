@@ -70,7 +70,6 @@ public class PatchFileConverter {
         // 1
         Patch patch = Patch.read(path);
 
-        // TODO
         List<Diff> diffs = new ArrayList<>();
 
         for (Diff diff : patch.getDiffs()) {
