@@ -16,9 +16,11 @@ repositories {
 
 dependencies {
     shadow "org.quiltmc:lorenz-tiny:3.0.0"
-	implementation "org.quiltmc:lorenz-tiny:3.0.0"
     shadow "org.quiltmc:tiny-mappings-parser:0.3.0"
-	implementation "org.quiltmc:tiny-mappings-parser:0.3.0"
+    implementation "org.quiltmc:lorenz-tiny:3.0.0"
+    implementation "org.quiltmc:tiny-mappings-parser:0.3.0"
+
+    implementation 'org.jetbrains:annotations:20.1.0'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
