@@ -11,10 +11,12 @@ import org.junit.jupiter.api.Test;
 public class IntermediaryToHashedMojmapConverterTest {
     @Test
     public void testRemapFile() throws IOException, URISyntaxException {
-        Path inputFile = Path.of("D:\\UserData\\Eli Orona\\GitHub\\yarn\\mappings");
+        Path inputFile = Path.of("C:\\Users\\elior\\git-projects\\yarn\\mappings");
+//        		IntermediaryToHashedMojmapConverterTest.class.getClassLoader()
+//						.getResource("org/quiltmc/test_mappings/").toURI());
 
         if (Files.exists(inputFile)) {
-			Path outputDirectory = Path.of(".", "test_output");
+			Path outputDirectory = Path.of("test_output");
 
 			IntermediaryToHashedMojmapConverter.main(new String[]{
 					"-DquiltInputFiles",

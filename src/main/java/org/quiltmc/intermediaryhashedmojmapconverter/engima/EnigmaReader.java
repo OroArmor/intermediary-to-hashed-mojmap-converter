@@ -84,9 +84,11 @@ public class EnigmaReader {
         String line = lines.get(currentLine.getAndIncrement());
         String[] tokens = line.trim().split("\\s+");
 
-        obfuscatedName = visitor.visit(EnigmaMapping.Type.METHOD, tokens[1], false, false);
+        String visited = visitor.visit(EnigmaMapping.Type.FIELD, tokens[1] + ";" + (tokens.length < 4 ? tokens[2] : tokens[3]), true, true);
+
+        obfuscatedName = visited.substring(0, visited.indexOf(";"));
         name = tokens.length < 4 ? "" : tokens[2];
-        signature = visitor.visit(EnigmaMapping.Type.METHOD, tokens.length < 4 ? tokens[2] : tokens [3], true, false);
+        signature = visited.substring(visited.indexOf(";") + 1);
 
         for (; currentLine.get() < lines.size(); currentLine.getAndIncrement()) {
             line = lines.get(currentLine.get());
@@ -113,9 +115,11 @@ public class EnigmaReader {
         String line = lines.get(currentLine.getAndIncrement());
         String[] tokens = line.trim().split("\\s+");
 
-        obfuscatedName = visitor.visit(EnigmaMapping.Type.FIELD, tokens[1], false, false);
+        String visited = visitor.visit(EnigmaMapping.Type.FIELD, tokens[1] + ";" + (tokens.length < 4 ? tokens[2] : tokens[3]), true, false);
+
+        obfuscatedName = visited.substring(0, visited.indexOf(";"));
         name = tokens.length < 4 ? "" : tokens[2];
-        signature = visitor.visit(EnigmaMapping.Type.FIELD, tokens.length < 4 ? tokens[2] : tokens [3], true, false);
+        signature = visited.substring(visited.indexOf(";") + 1);
 
         for (; currentLine.get() < lines.size(); currentLine.getAndIncrement()) {
             line = lines.get(currentLine.get());
