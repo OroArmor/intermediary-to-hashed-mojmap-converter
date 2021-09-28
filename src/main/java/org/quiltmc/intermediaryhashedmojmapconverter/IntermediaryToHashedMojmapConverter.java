@@ -14,13 +14,13 @@ import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import org.cadixdev.bombe.type.MethodDescriptor;
-import org.cadixdev.bombe.type.Type;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.ClassMapping;
 import org.cadixdev.lorenz.model.FieldMapping;
 import org.cadixdev.lorenz.model.MethodMapping;
+import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaFile;
+import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaReader;
 
 import net.fabricmc.lorenztiny.TinyMappingsReader;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
@@ -62,48 +62,34 @@ public class IntermediaryToHashedMojmapConverter {
     }
 
     private static void remapAndOutputFile(Path inputPath, Path outputPath, MappingSet intermediaryToHashed) throws IOException {
-        List<String> lines = Files.readAllLines(inputPath);
         Deque<ClassMapping<?, ?>> mappings = new ArrayDeque<>();
 
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i);
+        EnigmaFile transformed = EnigmaReader.readFile(inputPath, (type, original, signature, isMethod) -> {
+            if (signature) {
+                String obfuscatedName = original.substring(0, original.indexOf(";"));
+                String oldSignature = original.substring(original.indexOf(";") + 1);
 
-            String[] tokens = line.trim().split("\\s+");
-            switch (tokens[0]) {
-                case "CLASS":
-                    if (mappings.isEmpty()) {
-                        mappings.push(intermediaryToHashed.getOrCreateClassMapping(tokens[1]));
-                    } else {
-                        while (!mappings.peek().hasInnerClassMapping(tokens[1]) && !mappings.isEmpty()) {
-                            mappings.pop();
-                        }
-                        mappings.push(mappings.peek().getOrCreateInnerClassMapping(tokens[1]));
+                if (isMethod) {
+                    MethodMapping methodMapping = mappings.peek().getOrCreateMethodMapping(MethodSignature.of(obfuscatedName, oldSignature));
+                    return methodMapping.getDeobfuscatedName() + ";" + methodMapping.getDeobfuscatedDescriptor();
+                } else {
+                    FieldMapping fieldMapping = mappings.peek().getFieldMapping(obfuscatedName).orElseThrow(() -> new RuntimeException("Unable to find mapping for " + mappings.peek().getObfuscatedName() + "." + obfuscatedName));
+                    return fieldMapping.getDeobfuscatedName() + ";" + fieldMapping.getDeobfuscatedSignature().getType().get();
+                }
+            } else {
+                if (mappings.isEmpty()) {
+                    mappings.push(intermediaryToHashed.getOrCreateClassMapping(original));
+                } else {
+                    while (!mappings.peek().hasInnerClassMapping(original) && !mappings.isEmpty()) {
+                        mappings.pop();
                     }
-
-                    line = line.replace(tokens[1], mappings.peek().getDeobfuscatedName());
-                    break;
-                case "METHOD":
-                    String methodDescriptor = tokens.length == 4 ? tokens[3] : tokens[2];
-                    MethodMapping methodMapping = mappings.peek().getOrCreateMethodMapping(MethodSignature.of(tokens[1], methodDescriptor));
-                    if (!tokens[1].equals("<init>")) {
-                        line = line.replace(tokens[1], methodMapping.getDeobfuscatedName());
-                        if (tokens.length == 3 && !tokens[1].startsWith("method_")) {
-                            line = line.substring(0, line.lastIndexOf(" ") + 1) + tokens[1] + line.substring(line.lastIndexOf(" "));
-                        }
-                    }
-                    line = line.replace(methodDescriptor, methodMapping.getDeobfuscatedDescriptor());
-                    break;
-                case "FIELD":
-                    FieldMapping fieldMapping = mappings.peek().getFieldMapping(tokens[1]).orElseThrow(() -> new RuntimeException("Unable to find mapping for " + mappings.peek().getObfuscatedName() + "." + tokens[1]));
-                    line = line.replace(tokens[1], fieldMapping.getDeobfuscatedName());
-                    String fieldDescriptor = tokens.length == 4 ? tokens[3] : tokens[2];
-                    line = line.substring(0, line.lastIndexOf(" ") + 1) + intermediaryToHashed.deobfuscate(fieldMapping.getType().get()).toString();
-                    break;
+                    mappings.push(mappings.peek().getOrCreateInnerClassMapping(original));
+                }
+                return mappings.peek().getDeobfuscatedName();
             }
-            lines.set(i, line);
-        }
-        Files.createDirectories(outputPath);
-        Files.write(outputPath.resolve(inputPath.getFileName()), lines);
+        });
+
+        transformed.export(outputPath.resolve(inputPath.getFileName()));
     }
 
     public static MappingSet getIntermediaryToHashed(String minecraftVersion) throws IOException {
