@@ -5,10 +5,8 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -161,31 +159,21 @@ public class Patch {
         this.footer = footer;
     }
 
-    public void apply(BufferedReader reader, BufferedWriter writer, String filename) throws IOException {
+    public static void applyDiff(BufferedReader reader, BufferedWriter writer, Diff diff) throws IOException {
         List<String> lines = new ArrayList<>();
         String line;
         while ((line = reader.readLine()) != null) {
             lines.add(line);
         }
 
-        List<String> newLines = this.apply(lines, filename);
+        List<String> newLines = applyDiff(lines, diff);
         for (String l : newLines) {
             writer.write(l);
             writer.newLine();
         }
     }
 
-    public List<String> apply(List<String> lines, String filename) {
-        Diff diff = null;
-        for (Diff d : this.diffs) {
-            if (d.getFrom().contains(filename)) {
-                diff = d;
-            }
-        }
-        if (diff == null) {
-            throw new IllegalArgumentException("This patch can not be applied to " + filename);
-        }
-
+    public static List<String> applyDiff(List<String> lines, Diff diff) {
         List<String> out = new ArrayList<>();
         int i = 0;
         for (DiffBlock block : diff.getBlocks()) {

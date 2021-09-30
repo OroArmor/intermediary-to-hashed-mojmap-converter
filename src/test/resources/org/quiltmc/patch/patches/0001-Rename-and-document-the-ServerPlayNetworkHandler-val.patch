@@ -1,0 +1,43 @@
+From aec78889d4235cd50c323efe14857ed0dd582f8a Mon Sep 17 00:00:00 2001
+From: haykam821 <24855774+haykam821@users.noreply.github.com>
+Date: Thu, 2 Sep 2021 07:36:03 -0400
+Subject: [PATCH] Rename and document the
+ ServerPlayNetworkHandler#validateVehicleMove method (#2617)
+
+* Rename the ServerPlayNetworkHandler#validateVehicleMove method to validateMovement
+
+Fixes #2603
+
+* Document the ServerPlayNetworkHandler#validateMovement method
+
+* Rename the ServerPlayNetworkHandler#validateMovement method to isMovementValid
+
+* Fix the name and documentation for the ServerPlayNetworkHandler#isMovementValid method being inverted
+
+* Remove a duplicate word from the documentation for the ServerPlayNetworkHandler#isMovementInvalid method
+---
+ .../server/network/ServerPlayNetworkHandler.mapping       | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/mappings/net/minecraft/server/network/ServerPlayNetworkHandler.mapping b/mappings/net/minecraft/server/network/ServerPlayNetworkHandler.mapping
+index cbd0744701..6f3f964834 100644
+--- a/mappings/net/minecraft/server/network/ServerPlayNetworkHandler.mapping
++++ b/mappings/net/minecraft/server/network/ServerPlayNetworkHandler.mapping
+@@ -56,7 +56,13 @@ CLASS net/minecraft/class_3244 net/minecraft/server/network/ServerPlayNetworkHan
+ 		ARG 2 listener
+ 	METHOD method_14370 executeCommand (Ljava/lang/String;)V
+ 		ARG 1 input
+-	METHOD method_14371 validateVehicleMove (DDDFF)Z
++	METHOD method_14371 isMovementInvalid (DDDFF)Z
++		COMMENT {@return whether this movement is invalid}
++		COMMENT
++		COMMENT @implNote This method is used to determine
++		COMMENT whether players sending {@linkplain PlayerMoveC2SPacket player}
++		COMMENT and {@linkplain VehicleMoveC2SPacket vehicle} movement packets
++		COMMENT to the server should be kicked.
+ 		ARG 0 x
+ 		ARG 2 y
+ 		ARG 4 z
+-- 
+2.32.0.windows.2
+
