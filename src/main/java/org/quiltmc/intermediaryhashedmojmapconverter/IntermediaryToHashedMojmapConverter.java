@@ -7,7 +7,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
+import java.util.Date;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
@@ -19,11 +22,19 @@ import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.ClassMapping;
 import org.cadixdev.lorenz.model.FieldMapping;
 import org.cadixdev.lorenz.model.MethodMapping;
+import org.jetbrains.annotations.Nullable;
 import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaFile;
 import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaReader;
 
 import net.fabricmc.lorenztiny.TinyMappingsReader;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 public class IntermediaryToHashedMojmapConverter {
     public static final String CACHE_DIR = ".intermediaryhashedmojmapconverter";
@@ -93,8 +104,8 @@ public class IntermediaryToHashedMojmapConverter {
     }
 
     public static MappingSet getIntermediaryToHashed(String minecraftVersion) throws IOException {
-        checkAndCreateTinyCache(minecraftVersion, "intermediary", "-v2");
-        checkAndCreateTinyCache(minecraftVersion, "hashed-mojmap", "");
+        checkAndCreateMappingsCache("net.fabricmc", "intermediary", minecraftVersion, "-v2", "https://maven.fabricmc.net", false);
+        checkAndCreateMappingsCache("org.quiltmc", "hashed-mojmap", minecraftVersion, "", "https://maven.quiltmc.org/repository/snapshot", true);
 
         MappingSet officialToIntermediary = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), CACHE_DIR, "intermediary", minecraftVersion + ".tiny").toFile()))), "official", "intermediary").read();
         MappingSet officialToHashed = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), CACHE_DIR, "hashed-mojmap", minecraftVersion + ".tiny").toFile()))), "official", "hashed").read();
@@ -102,17 +113,68 @@ public class IntermediaryToHashedMojmapConverter {
         return MappingSet.create().merge(officialToIntermediary.reverse()).merge(officialToHashed);
     }
 
-    public static void checkAndCreateTinyCache(String minecraftVersion, String name, String classifier) throws IOException {
-        Path cachedFilePath = Path.of(System.getProperty("user.home"), CACHE_DIR, name, minecraftVersion + ".jar");
+    public static void checkAndCreateMappingsCache(String group, String name, String minecraftVersion, String classifier, String mavenUrl, boolean isSnapshotArtifact) throws IOException {
+        Path cachedFilePath = Path.of(System.getProperty("user.home"), CACHE_DIR, name, minecraftVersion + ".tiny");
+
         if (!cachedFilePath.toFile().exists()) {
-            URL downloadableMavenURL = new URL("https://maven.quiltmc.org/repository/release/org/quiltmc/" + name + "/" + minecraftVersion + "/" + name + "-" + minecraftVersion + classifier + ".jar");
-            Files.createDirectories(cachedFilePath.getParent());
-            Files.createFile(cachedFilePath);
-            Files.write(cachedFilePath, downloadableMavenURL.openStream().readAllBytes());
-            ZipFile jarFile = new ZipFile(cachedFilePath.toFile());
-            ZipEntry tinyFileEntry = jarFile.getEntry((name.equals("hashed-mojmap") ? "hashed" : "mappings") + "/mappings.tiny");
-            Files.write(cachedFilePath.getParent().resolve(minecraftVersion + ".tiny"), jarFile.getInputStream(tinyFileEntry).readAllBytes());
+            Path cachedJarPath = Path.of(System.getProperty("user.home"), CACHE_DIR, name, minecraftVersion + ".jar");
+            File cachedJar = downloadArtifact(group, name, minecraftVersion + (isSnapshotArtifact ? "-SNAPSHOT" : ""), classifier, mavenUrl, cachedJarPath);
+            ZipFile jarFile = new ZipFile(cachedJar);
+            ZipEntry tinyFileEntry = jarFile.getEntry("hashed/mappings.tiny");
+            if (tinyFileEntry == null) {
+                tinyFileEntry = jarFile.getEntry("mappings/mappings.tiny");
+            }
+            Files.write(cachedFilePath, jarFile.getInputStream(tinyFileEntry).readAllBytes());
         }
+    }
+
+    public static File downloadArtifact(String group, String name, String version, String classifier, String mavenUrl, @Nullable Path output) throws IOException {
+        if (output == null) {
+            output = Path.of(System.getProperty("user.home"), CACHE_DIR, group + "-" + name + "-" + version + ".jar");
+        }
+        File outputFile = output.toFile();
+        boolean needsDownloading = !outputFile.exists();
+
+        String urlGroup = group.replace(".", "/");
+        boolean isSnapshot = version.endsWith("-SNAPSHOT");
+        String snapshotVersion = "";
+
+        // Read maven-metadata.xml to get the latest version
+        if (isSnapshot) {
+            try {
+                DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
+                Document document = documentBuilder.parse(mavenUrl + "/" + urlGroup + "/" + name + "/" + version + "/maven-metadata.xml");
+                document.getDocumentElement().normalize();
+
+                Element versioningElement = (Element) document.getElementsByTagName("versioning").item(0);
+                Element snapshotElement = (Element) versioningElement.getElementsByTagName("snapshot").item(0);
+                String timestamp = snapshotElement.getElementsByTagName("timestamp").item(0).getTextContent();
+                String buildNumber = snapshotElement.getElementsByTagName("buildNumber").item(0).getTextContent();
+
+                snapshotVersion = version.replace("-SNAPSHOT", "") + "-" + timestamp + "-" + buildNumber;
+                Date snapshotDate = new SimpleDateFormat("yyyyMMdd.HHmmss").parse(timestamp);
+                needsDownloading = !outputFile.exists() || new Date(outputFile.lastModified()).before(snapshotDate);
+            } catch (ParserConfigurationException | ParseException | SAXException e) {
+                throw new RuntimeException("Failed to find and verify the latest snapshot for " + group + ":" + name + ":" + version);
+            }
+        }
+
+        if (needsDownloading) {
+            String url = mavenUrl + "/" + urlGroup + "/" + name + "/" + version + "/";
+            if (isSnapshot) {
+                url += name + "-" + snapshotVersion + classifier + ".jar";
+            } else {
+                url += name + "-" + version + classifier + ".jar";
+            }
+            URL downloadableUrl = new URL(url);
+            System.out.println("Downloading artifact from " + url);
+            Files.createDirectories(output.getParent());
+            Files.createFile(output);
+            Files.write(output, downloadableUrl.openStream().readAllBytes());
+        }
+
+        return outputFile;
     }
 
     // We have `name` for backwards compatibility

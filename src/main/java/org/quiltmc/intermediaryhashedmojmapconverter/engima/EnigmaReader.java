@@ -10,10 +10,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.sun.source.tree.Tree;
-import org.cadixdev.lorenz.model.FieldMapping;
-import org.cadixdev.lorenz.model.MethodMapping;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class EnigmaReader {
@@ -84,7 +80,7 @@ public class EnigmaReader {
         String line = lines.get(currentLine.getAndIncrement());
         String[] tokens = line.trim().split("\\s+");
 
-        String visited = visitor.visit(EnigmaMapping.Type.FIELD, tokens[1] + ";" + (tokens.length < 4 ? tokens[2] : tokens[3]), true, true);
+        String visited = visitor.visit(EnigmaMapping.Type.METHOD, tokens[1] + ";" + (tokens.length < 4 ? tokens[2] : tokens[3]), true, true);
 
         obfuscatedName = visited.substring(0, visited.indexOf(";"));
         name = tokens.length < 4 ? "" : tokens[2];
