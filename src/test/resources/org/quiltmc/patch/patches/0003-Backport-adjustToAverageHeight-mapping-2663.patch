@@ -1,0 +1,25 @@
+From 26dbaa9cce4b222f6fda64273d7291b4b688ada2 Mon Sep 17 00:00:00 2001
+From: apple502j <33279053+apple502j@users.noreply.github.com>
+Date: Tue, 7 Sep 2021 23:14:23 +0900
+Subject: [PATCH] Backport adjustToAverageHeight mapping (#2663)
+
+---
+ .../minecraft/structure/StructurePieceWithDimensions.mapping   | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/mappings/net/minecraft/structure/StructurePieceWithDimensions.mapping b/mappings/net/minecraft/structure/StructurePieceWithDimensions.mapping
+index eeffd77ebb..e936f80fbf 100644
+--- a/mappings/net/minecraft/structure/StructurePieceWithDimensions.mapping
++++ b/mappings/net/minecraft/structure/StructurePieceWithDimensions.mapping
+@@ -12,6 +12,7 @@ CLASS net/minecraft/class_3418 net/minecraft/structure/StructurePieceWithDimensi
+ 		ARG 6 height
+ 		ARG 7 depth
+ 		ARG 8 orientation
+-	METHOD method_14839 (Lnet/minecraft/class_1936;Lnet/minecraft/class_3341;I)Z
++	METHOD method_14839 adjustToAverageHeight (Lnet/minecraft/class_1936;Lnet/minecraft/class_3341;I)Z
+ 		ARG 1 world
+ 		ARG 2 boundingBox
++		ARG 3 deltaY
+-- 
+2.32.0.windows.2
+

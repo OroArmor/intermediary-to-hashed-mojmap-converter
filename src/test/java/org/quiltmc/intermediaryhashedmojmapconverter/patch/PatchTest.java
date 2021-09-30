@@ -20,14 +20,13 @@ public class PatchTest {
         Path expectedFilesDir = resourcesDir.resolve("expected_files");
 
         List<Path> patches = Files.walk(patchesDir).filter(path -> !Files.isDirectory(path)).collect(Collectors.toList());
-        System.out.println(patches);
         for (Path path : patches) {
             Patch patch = Patch.read(path);
             for (Diff diff : patch.getDiffs()) {
                 List<String> fileLines = Files.readAllLines(filesDir.resolve(diff.getFrom()));
                 List<String> appliedFileLines = Patch.applyDiff(fileLines, diff);
                 String actualContent = String.join("\n", appliedFileLines);
-                String expectedContent = Files.readString(expectedFilesDir.resolve(diff.getTo())).replace("\r\n", "\n");
+                String expectedContent = Files.readString(expectedFilesDir.resolve(diff.getTo())).trim().replace("\r\n", "\n");
                 assertEquals(expectedContent, actualContent);
             }
         }

@@ -177,8 +177,19 @@ public class Patch {
         List<String> out = new ArrayList<>();
         int i = 0;
         for (DiffBlock block : diff.getBlocks()) {
-            out.addAll(block.getDestination());
-            i += block.getSourceSize();
+            for (int j = i; j < block.getSourceLine() - 1; ++j, ++i) {
+                out.add(lines.get(j));
+            }
+            for (DiffLine diffLine : block.getDiffLines()) {
+                switch (diffLine.getType()) {
+                    case ADDED -> out.add(diffLine.getLine());
+                    case REMOVED -> ++i;
+                    case UNCHANGED -> {
+                        out.add(diffLine.getLine());
+                        ++i;
+                    }
+                }
+            }
         }
 
         // Add remaining lines to the result
