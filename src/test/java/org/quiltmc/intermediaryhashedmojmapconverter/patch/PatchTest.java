@@ -23,10 +23,14 @@ public class PatchTest {
         for (Path path : patches) {
             Patch patch = Patch.read(path);
             for (Diff diff : patch.getDiffs()) {
-                List<String> fileLines = Files.readAllLines(filesDir.resolve(diff.getFrom()));
+                Path inputFile = filesDir.resolve(diff.getFrom());
+                assertTrue(Files.exists(inputFile) && !Files.isDirectory(inputFile), "Input file " + diff.getFrom() + " does not exist");
+                Path expectedFile = expectedFilesDir.resolve(diff.getTo());
+                assertTrue(Files.exists(expectedFile) && !Files.isDirectory(expectedFile), "Expected file " + diff.getTo() + " does not exist");
+                List<String> fileLines = Files.readAllLines(inputFile);
                 List<String> appliedFileLines = Patch.applyDiff(fileLines, diff);
                 String actualContent = String.join("\n", appliedFileLines);
-                String expectedContent = Files.readString(expectedFilesDir.resolve(diff.getTo())).trim().replace("\r\n", "\n");
+                String expectedContent = Files.readString(expectedFile).trim().replace("\r\n", "\n");
                 assertEquals(expectedContent, actualContent);
             }
         }

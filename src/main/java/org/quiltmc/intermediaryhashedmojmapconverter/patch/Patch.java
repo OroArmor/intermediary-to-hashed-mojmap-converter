@@ -69,7 +69,7 @@ public class Patch {
                 diffInfo.add(line); // save command
                 continue;
             }
-            if (!readingFooter && !readingBlock && line.equals("-- ")) { // a line inside a block won't return true for equals("-- ")
+            if (!readingFooter && !readingBlock && (line.equals("--") || line.equals("-- "))) { // a line inside a block won't return true for equals("-- ")
                 readingFooter = true;
                 footer.add(line);
                 continue;
