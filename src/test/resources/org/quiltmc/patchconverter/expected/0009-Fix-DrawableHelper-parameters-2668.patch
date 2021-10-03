@@ -1,0 +1,45 @@
+From 6970561c32a5d7f5cd4463b00bf32c3707e5a351 Mon Sep 17 00:00:00 2001
+From: enbrain <69905075+enbrain@users.noreply.github.com>
+Date: Wed, 8 Sep 2021 20:19:59 +0900
+Subject: [PATCH] Fix DrawableHelper parameters (#2668)
+
+---
+ mappings/net/minecraft/client/gui/DrawableHelper.mapping | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/mappings/net/minecraft/client/gui/DrawableHelper.mapping b/mappings/net/minecraft/client/gui/DrawableHelper.mapping
+index a46c843f59..8a0cab848c 100644
+--- a/mappings/net/minecraft/client/gui/DrawableHelper.mapping
++++ b/mappings/net/minecraft/client/gui/DrawableHelper.mapping
+@@ -17,8 +17,8 @@
+ 	METHOD m_axfzvihh drawTexture (Lnet/minecraft/unmapped/C_dvxszsnc;IIIIIIIFFII)V
+ 		ARG 0 matrices
+ 		ARG 1 x0
+-		ARG 2 y0
+-		ARG 3 x1
++		ARG 2 x1
++		ARG 3 y0
+ 		ARG 4 y1
+ 		ARG 5 z
+ 		ARG 6 regionWidth
+@@ -150,7 +150,7 @@
+ 		ARG 5 color
+ 	METHOD m_uemkhfrf drawWithShadow (Lnet/minecraft/unmapped/C_dvxszsnc;Lnet/minecraft/unmapped/C_ppmzovam;Lnet/minecraft/unmapped/C_iywgkvpa;III)V
+ 		ARG 0 matrices
+-		ARG 1 textHandler
++		ARG 1 textRenderer
+ 		ARG 2 text
+ 		ARG 3 x
+ 		ARG 4 y
+@@ -171,7 +171,7 @@
+ 		ARG 4 y2
+ 		ARG 5 color
+ 	METHOD m_vmhrnjam drawTexturedQuad (Lnet/minecraft/unmapped/C_bijddvxg;IIIIIFFFF)V
+-		ARG 0 matrices
++		ARG 0 matrix
+ 		ARG 1 x0
+ 		ARG 2 x1
+ 		ARG 3 y0
+-- 
+2.32.0.windows.2
+

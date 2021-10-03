@@ -1,0 +1,44 @@
+CLASS net/minecraft/unmapped/C_exsttxvr net/minecraft/util/math/Quaternion
+	FIELD f_ewnwfyez z F
+	FIELD f_fcoczrsf x F
+	FIELD f_jfjuxgxf w F
+	FIELD f_nwsxfycn IDENTITY Lnet/minecraft/unmapped/C_exsttxvr;
+	FIELD f_pbmxgwgu y F
+	METHOD <init> (FFFF)V
+		ARG 1 x
+		ARG 2 y
+		ARG 3 z
+		ARG 4 w
+	METHOD <init> (FFFZ)V
+		ARG 1 x
+		ARG 2 y
+		ARG 3 z
+		ARG 4 degrees
+	METHOD <init> (Lnet/minecraft/unmapped/C_exsttxvr;)V
+		ARG 1 other
+	METHOD <init> (Lnet/minecraft/unmapped/C_fgwfwivz;FZ)V
+		ARG 1 axis
+		ARG 2 rotationAngle
+		ARG 3 degrees
+	METHOD equals (Ljava/lang/Object;)Z
+		ARG 1 o
+	METHOD m_aigyhrmk hamiltonProduct (Lnet/minecraft/unmapped/C_exsttxvr;)V
+		ARG 1 other
+	METHOD m_gezttcgj normalize ()V
+	METHOD m_hcijvyit set (FFFF)V
+		ARG 1 x
+		ARG 2 y
+		ARG 3 z
+		ARG 4 w
+	METHOD m_nkabbynp getX ()F
+	METHOD m_nlyamlde cos (F)F
+		ARG 0 value
+	METHOD m_oujamdid getY ()F
+	METHOD m_pvhsoimg getW ()F
+	METHOD m_ugturnus copy ()Lnet/minecraft/unmapped/C_exsttxvr;
+	METHOD m_uwutlhuj sin (F)F
+		ARG 0 value
+	METHOD m_vzdcqudd conjugate ()V
+	METHOD m_wxegelwr scale (F)V
+		ARG 1 scale
+	METHOD m_xyqenpdw getZ ()F

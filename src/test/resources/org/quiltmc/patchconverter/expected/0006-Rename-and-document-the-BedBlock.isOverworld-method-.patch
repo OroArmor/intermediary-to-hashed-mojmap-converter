@@ -1,0 +1,35 @@
+From 19070213b23be79b0e782a1ee789e6a17b2d625d Mon Sep 17 00:00:00 2001
+From: haykam821 <24855774+haykam821@users.noreply.github.com>
+Date: Tue, 31 Aug 2021 15:39:59 -0400
+Subject: [PATCH] Rename and document the BedBlock.isOverworld method
+ (#2651)
+
+* Rename the BedBlock.isOverworld method to isBedWorking
+
+Fixes #2645
+
+* Document the BedBlock.isBedWorking method
+---
+ mappings/net/minecraft/block/BedBlock.mapping | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/mappings/net/minecraft/block/BedBlock.mapping b/mappings/net/minecraft/block/BedBlock.mapping
+index 55224845b2..05201667ec 100644
+--- a/mappings/net/minecraft/block/BedBlock.mapping
++++ b/mappings/net/minecraft/block/BedBlock.mapping
+@@ -17,7 +17,11 @@
+ 	METHOD m_ayzhlnof getBedPart (Lnet/minecraft/unmapped/C_pmeibtxt;)Lnet/minecraft/unmapped/C_tdbxmpme$C_apphnulp;
+ 		ARG 0 state
+ 	METHOD m_bqjodgvh getColor ()Lnet/minecraft/unmapped/C_eaqgllra;
+-	METHOD m_cnpdfrtf isOverworld (Lnet/minecraft/unmapped/C_nbzftcdc;)Z
++	METHOD m_cnpdfrtf isBedWorking (Lnet/minecraft/unmapped/C_nbzftcdc;)Z
++		COMMENT {@return whether the world's {@linkplain net.minecraft.world.dimension.DimensionType dimension type}
++		COMMENT allows beds to be respawned at and slept in without exploding}
++		COMMENT
++		COMMENT @see net.minecraft.world.dimension.DimensionType#isBedWorking()
+ 		ARG 0 world
+ 	METHOD m_drwqmlcr findWakeUpPosition (Lnet/minecraft/unmapped/C_rbvsvago;Lnet/minecraft/unmapped/C_udtjrzxv;Lnet/minecraft/unmapped/C_kkdaznyh;Lnet/minecraft/unmapped/C_fxhiuupx;Lnet/minecraft/unmapped/C_fxhiuupx;)Ljava/util/Optional;
+ 		ARG 0 type
+-- 
+2.32.0.windows.2
+

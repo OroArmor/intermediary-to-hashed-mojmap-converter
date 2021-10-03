@@ -1,0 +1,46 @@
+From 9fb70f43fbed9be2a4ecb9bafdccd370be32671d Mon Sep 17 00:00:00 2001
+From: frqnny <45723631+frqnny@users.noreply.github.com>
+Date: Wed, 8 Sep 2021 07:20:15 -0400
+Subject: [PATCH] Registry ops (#2576)
+
+* First RegistryOps attempt
+
+* use registryManager
+---
+ mappings/net/minecraft/util/dynamic/RegistryOps.mapping | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/mappings/net/minecraft/util/dynamic/RegistryOps.mapping b/mappings/net/minecraft/util/dynamic/RegistryOps.mapping
+index 1501c7b3d5..1b977c1e7d 100644
+--- a/mappings/net/minecraft/util/dynamic/RegistryOps.mapping
++++ b/mappings/net/minecraft/util/dynamic/RegistryOps.mapping
+@@ -13,6 +13,7 @@
+ 	METHOD m_dgclnxjr of (Lcom/mojang/serialization/DynamicOps;Lnet/minecraft/unmapped/C_hdzcrwdu$C_xcmjnhmg;Lnet/minecraft/unmapped/C_qdzvmxqw;)Lnet/minecraft/unmapped/C_hdzcrwdu;
+ 		ARG 0 delegate
+ 		ARG 1 entryLoader
++		ARG 2 registryManager
+ 	METHOD m_fbeopwui readSupplier (Lnet/minecraft/unmapped/C_hcaelhhx;Lnet/minecraft/unmapped/C_ivcnxxee;Lcom/mojang/serialization/Codec;Lnet/minecraft/unmapped/C_acfwypcn;)Lcom/mojang/serialization/DataResult;
+ 		COMMENT Reads a supplier for a registry element.
+ 		COMMENT
+@@ -23,6 +24,8 @@
+ 		ARG 4 elementId
+ 	METHOD m_gcsvvqpl getValueHolder (Lnet/minecraft/unmapped/C_hcaelhhx;)Lnet/minecraft/unmapped/C_hdzcrwdu$C_ysyerzlw;
+ 		ARG 1 registryRef
++	METHOD m_hgszmvze ofLoaded (Lcom/mojang/serialization/DynamicOps;Lnet/minecraft/unmapped/C_fsaprnmt;Lnet/minecraft/unmapped/C_qdzvmxqw;)Lnet/minecraft/unmapped/C_hdzcrwdu;
++		ARG 2 registryManager
+ 	METHOD m_jdyloijc decodeOrId (Ljava/lang/Object;Lnet/minecraft/unmapped/C_hcaelhhx;Lcom/mojang/serialization/Codec;Z)Lcom/mojang/serialization/DataResult;
+ 		COMMENT Encode an id for a registry element than a full object if possible.
+ 		COMMENT
+@@ -38,6 +41,9 @@
+ 	METHOD m_lfxllavt of (Lcom/mojang/serialization/DynamicOps;Lnet/minecraft/unmapped/C_fsaprnmt;Lnet/minecraft/unmapped/C_qdzvmxqw;)Lnet/minecraft/unmapped/C_hdzcrwdu;
+ 		ARG 0 delegate
+ 		ARG 1 resourceManager
++		ARG 2 registryManager
++	METHOD m_okmqeykr ofLoaded (Lcom/mojang/serialization/DynamicOps;Lnet/minecraft/unmapped/C_hdzcrwdu$C_xcmjnhmg;Lnet/minecraft/unmapped/C_qdzvmxqw;)Lnet/minecraft/unmapped/C_hdzcrwdu;
++		ARG 2 registryManager
+ 	METHOD m_pzjbfhao loadToRegistry (Lnet/minecraft/unmapped/C_exxvmces;Lnet/minecraft/unmapped/C_hcaelhhx;Lcom/mojang/serialization/Codec;)Lcom/mojang/serialization/DataResult;
+ 		COMMENT Loads elements into a registry just loaded from a decoder.
+ 		ARG 1 registry
+-- 
+2.32.0.windows.2
+

@@ -1,0 +1,35 @@
+From 19070213b23be79b0e782a1ee789e6a17b2d625d Mon Sep 17 00:00:00 2001
+From: haykam821 <24855774+haykam821@users.noreply.github.com>
+Date: Tue, 31 Aug 2021 15:39:59 -0400
+Subject: [PATCH] Rename and document the BedBlock.isOverworld method
+ (#2651)
+
+* Rename the BedBlock.isOverworld method to isBedWorking
+
+Fixes #2645
+
+* Document the BedBlock.isBedWorking method
+---
+ mappings/net/minecraft/block/BedBlock.mapping | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/mappings/net/minecraft/block/BedBlock.mapping b/mappings/net/minecraft/block/BedBlock.mapping
+index 55224845b2..05201667ec 100644
+--- a/mappings/net/minecraft/block/BedBlock.mapping
++++ b/mappings/net/minecraft/block/BedBlock.mapping
+@@ -28,7 +28,11 @@ CLASS net/minecraft/class_2244 net/minecraft/block/BedBlock
+ 		ARG 0 state
+ 	METHOD method_24164 getBedPart (Lnet/minecraft/class_2680;)Lnet/minecraft/class_4732$class_4733;
+ 		ARG 0 state
+-	METHOD method_27352 isOverworld (Lnet/minecraft/class_1937;)Z
++	METHOD method_27352 isBedWorking (Lnet/minecraft/class_1937;)Z
++		COMMENT {@return whether the world's {@linkplain net.minecraft.world.dimension.DimensionType dimension type}
++		COMMENT allows beds to be respawned at and slept in without exploding}
++		COMMENT
++		COMMENT @see net.minecraft.world.dimension.DimensionType#isBedWorking()
+ 		ARG 0 world
+ 	METHOD method_30835 findWakeUpPosition (Lnet/minecraft/class_1299;Lnet/minecraft/class_1941;Lnet/minecraft/class_2338;Lnet/minecraft/class_2350;Lnet/minecraft/class_2350;)Ljava/util/Optional;
+ 		ARG 0 type
+-- 
+2.32.0.windows.2
+

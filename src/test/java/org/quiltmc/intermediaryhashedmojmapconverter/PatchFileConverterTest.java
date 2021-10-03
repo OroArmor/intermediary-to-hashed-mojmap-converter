@@ -1,6 +1,7 @@
 package org.quiltmc.intermediaryhashedmojmapconverter;
 
 import org.cadixdev.lorenz.MappingSet;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -17,8 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class PatchFileConverterTest {
     private static final Path YARN_PATH = Path.of("C:\\Users\\Martin\\repo\\FabricMC\\yarn");
-    private static final Path QM_PATH = Path.of("C:\\Users\\Martin\\repo\\QuiltMC\\quilt-mappings");
-
+    private static final Path TEST_MAPPINGS_PATH = new File(PatchTest.class.getClassLoader().getResource("org/quiltmc/test_mappings").getPath()).toPath();
     private static final Path RESOURCES_DIR = new File(PatchTest.class.getClassLoader().getResource("org/quiltmc/patchconverter").getPath()).toPath();
     private static final Path PATCHES_DIR = RESOURCES_DIR.resolve("patches");
     private static final Path EXPECTED_PATCHES_DIR = RESOURCES_DIR.resolve("expected");
@@ -31,6 +31,11 @@ public class PatchFileConverterTest {
     public static List<Arguments> provideConvertPatchFileArguments() throws IOException {
         return Files.walk(PATCHES_DIR).filter(path -> !Files.isDirectory(path)).map(path -> Arguments.of(path, PATCHES_DIR.relativize(path))).collect(Collectors.toList());
     }
+    
+    @BeforeAll
+    public static void checkDirectories() {
+        assertTrue(Files.exists(YARN_PATH), "The yarn repository " + YARN_PATH + " does not exist");
+    }
 
     @ParameterizedTest(name = "{1}")
     @MethodSource("provideConvertPatchFileArguments")
@@ -39,7 +44,7 @@ public class PatchFileConverterTest {
         assertTrue(Files.exists(expectedPatchPath) && !Files.isDirectory(expectedPatchPath), "Expected file " + relative + " does not exist");
 
         Path outputPath = outputsDir.resolve(relative);
-        PatchFileConverter.convertPatchFile(path, outputPath, intermediaryToHashed, YARN_PATH, QM_PATH);
+        PatchFileConverter.convertPatchFile(path, outputPath, intermediaryToHashed, YARN_PATH, TEST_MAPPINGS_PATH);
 
         List<String> expectedLines = Files.readAllLines(expectedPatchPath);
         String expectedContent = String.join("\n", expectedLines).trim();

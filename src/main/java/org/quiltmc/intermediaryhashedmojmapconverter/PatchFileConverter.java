@@ -120,6 +120,10 @@ public class PatchFileConverter {
         List<Diff> diffs = new ArrayList<>();
 
         for (Diff diff : patch.getDiffs()) {
+            if (!diff.getFrom().endsWith(".mapping")) {
+                diffs.add(diff);
+                continue;
+            }
             Path yarnFilePath = yarnDir.resolve(diff.getFrom());
             List<ClassMapping<?, ?>> classesIntermediaryToHashed = new ArrayList<>();
 
@@ -196,7 +200,7 @@ public class PatchFileConverter {
                 int indent = line.lastIndexOf("\t");
                 if (indent == -1) {
                     qmFileWithDifferences.add(0, line);
-                } else if (indent == 0) {
+                } else if (indent == 0 && type != EnigmaMapping.Type.COMMENT) {
                     // Find where to put the line
                     // TODO: Fix for comments
                     int i = 1;
@@ -223,9 +227,11 @@ public class PatchFileConverter {
             // 4.4
             for (DiffLine remappedAddedLine : remappedAddedLines) {
                 String line = remappedAddedLine.getLine();
+                String[] tokens = line.trim().split("\\s+");
+                EnigmaMapping.Type type = EnigmaMapping.Type.valueOf(tokens[0]);
 
                 int indent = line.lastIndexOf("\t");
-                if (indent >= 1) {
+                if (indent >= 1 || type == EnigmaMapping.Type.COMMENT) {
                     continue;
                 }
 
