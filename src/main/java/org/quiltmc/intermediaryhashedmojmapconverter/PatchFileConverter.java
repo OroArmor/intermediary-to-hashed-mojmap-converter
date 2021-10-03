@@ -189,9 +189,6 @@ public class PatchFileConverter {
 
             // 4.3
             List<String> qmFileWithDifferences = Files.readAllLines(qmFile);
-            for (DiffLine remappedRemovedLine : remappedRemovedLines) {
-                qmFileWithDifferences.remove(remappedRemovedLine.getLine());
-            }
             for (DiffLine remappedAddedLine : remappedAddedLines) {
                 String line = remappedAddedLine.getLine();
                 String[] tokens = line.trim().split("\\s+");
@@ -216,6 +213,9 @@ public class PatchFileConverter {
                     // TODO
                     System.out.println("WARN: Added line '" + line + "' will not be in the final result");
                 }
+            }
+            for (DiffLine remappedRemovedLine : remappedRemovedLines) {
+                qmFileWithDifferences.remove(remappedRemovedLine.getLine());
             }
             EnigmaFile enigmaQmFileWithDifferences = EnigmaReader.readLines(qmFileWithDifferences);
             List<String> enigmaQmFileWithDifferencesLines = List.of(enigmaQmFileWithDifferences.toString().split("\n"));

@@ -1,0 +1,22 @@
+From 3bebac04cddb3f5d3512ecb42b15326a9cd4fa57 Mon Sep 17 00:00:00 2001
+From: haykam821 <24855774+haykam821@users.noreply.github.com>
+Date: Tue, 7 Sep 2021 10:13:56 -0400
+Subject: [PATCH] Rename the OperatorList#isOp method to canBypassPlayerLimit
+ (#2666)
+
+Fixes #2665
+---
+ mappings/net/minecraft/server/OperatorList.mapping | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mappings/net/minecraft/server/OperatorList.mapping b/mappings/net/minecraft/server/OperatorList.mapping
+index f973841e5d..221359b868 100644
+--- a/mappings/net/minecraft/server/OperatorList.mapping
++++ b/mappings/net/minecraft/server/OperatorList.mapping
+@@ -1,3 +1,3 @@
+ CLASS net/minecraft/unmapped/C_hlmbwrkb net/minecraft/server/OperatorList
+-	METHOD m_lpbxcmbi isOp (Lcom/mojang/authlib/GameProfile;)Z
++	METHOD m_lpbxcmbi canBypassPlayerLimit (Lcom/mojang/authlib/GameProfile;)Z
+ 		ARG 1 profile
+-- 
+2.32.0.windows.2
