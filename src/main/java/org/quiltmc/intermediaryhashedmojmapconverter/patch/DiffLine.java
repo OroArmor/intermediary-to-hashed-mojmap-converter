@@ -22,8 +22,24 @@ public class DiffLine {
     }
 
     public enum LineType {
-        REMOVED,
-        ADDED,
-        UNCHANGED;
+        REMOVED(true, false),
+        ADDED(false, true),
+        UNCHANGED(true, true);
+
+        private final boolean increasesSourceLineNumber;
+        private final boolean increasesDestLineNumber;
+
+        LineType(boolean increasesSourceLineNumber, boolean increasesDestLineNumber) {
+            this.increasesSourceLineNumber = increasesSourceLineNumber;
+            this.increasesDestLineNumber = increasesDestLineNumber;
+        }
+
+        public boolean increasesSourceLineNumber() {
+            return this.increasesSourceLineNumber;
+        }
+
+        public boolean increasesDestLineNumber() {
+            return this.increasesDestLineNumber;
+        }
     }
 }

@@ -18,7 +18,7 @@ public class EnigmaFile {
         Files.writeString(path, toString());
     }
 
-    public String toString(){
+    public String toString() {
         StringBuilder builder = new StringBuilder();
         writeClass(clazz, builder, 0);
         return builder.toString();
