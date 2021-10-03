@@ -188,14 +188,48 @@ public class PatchFileConverter {
             }
 
             // 4.3
-            // TODO
             List<String> qmFileWithDifferences = Files.readAllLines(qmFile);
+            for (DiffLine remappedRemovedLine : remappedRemovedLines) {
+                qmFileWithDifferences.remove(remappedRemovedLine.getLine());
+            }
+            for (DiffLine remappedAddedLine : remappedAddedLines) {
+                String line = remappedAddedLine.getLine();
+                String[] tokens = line.trim().split("\\s+");
+                EnigmaMapping.Type type = EnigmaMapping.Type.valueOf(tokens[0]);
+                int indent = line.lastIndexOf("\t");
+                if (indent == -1) {
+                    qmFileWithDifferences.add(0, line);
+                } else if (indent == 0) {
+                    // Find where to put the line
+                    // TODO: Fix for comments
+                    int i = 1;
+                    for (; i < qmFileWithDifferences.size(); ++i) {
+                        String line2 = qmFileWithDifferences.get(i);
+                        String[] tokens2 = line2.trim().split("\\s+");
+                        EnigmaMapping.Type type2 = EnigmaMapping.Type.valueOf(tokens2[0]);
+                        if (type == type2) {
+                            break;
+                        }
+                    }
+                    qmFileWithDifferences.add(i, line);
+                } else {
+                    // TODO
+                    System.out.println("WARN: Added line '" + line + "' will not be in the final result");
+                }
+            }
             EnigmaFile enigmaQmFileWithDifferences = EnigmaReader.readLines(qmFileWithDifferences);
-            List<String> enigmaQmFileIncludingAddedMappingsLines = List.of(enigmaQmFileWithDifferences.toString().split("\n"));
+            List<String> enigmaQmFileWithDifferencesLines = List.of(enigmaQmFileWithDifferences.toString().split("\n"));
 
             // 4.4
             for (DiffLine remappedAddedLine : remappedAddedLines) {
-                int index = enigmaQmFileIncludingAddedMappingsLines.indexOf(remappedAddedLine.getLine());
+                String line = remappedAddedLine.getLine();
+
+                int indent = line.lastIndexOf("\t");
+                if (indent >= 1) {
+                    continue;
+                }
+
+                int index = enigmaQmFileWithDifferencesLines.indexOf(line);
                 if (index == -1) {
                     throw new RuntimeException("Failed to find line '" + remappedAddedLine.getLine().trim() + "' in ordered enigma file");
                 }
@@ -216,7 +250,7 @@ public class PatchFileConverter {
                 DiffLine.LineType lineType = diffLine.getType();
                 int lineNumber = entry.getValue();
 
-                List<String> allLines = lineType == DiffLine.LineType.REMOVED ? enigmaQmFileLines : enigmaQmFileIncludingAddedMappingsLines;
+                List<String> allLines = lineType == DiffLine.LineType.REMOVED ? enigmaQmFileLines : enigmaQmFileWithDifferencesLines;
                 boolean hasPrev = i > 0;
                 boolean hasNext = i < diffLinesToLineNumberOrdered.size() - 1;
                 Map.Entry<DiffLine, Integer> prev = hasPrev ? diffLinesToLineNumberOrdered.get(i - 1) : null;
@@ -238,6 +272,9 @@ public class PatchFileConverter {
                 boolean hasContextAfter = lineNumber < allLines.size() && (!hasNext || lineNumber < next.getValue() - 1);
                 if (hasContextAfter) {
                     int contextEndLine = Math.min(lineNumber + contextLines, hasNext ? next.getValue() - 1 : allLines.size());
+                    if (hasNext && next.getValue() - lineNumber < contextLines * 2) {
+                        contextEndLine = Math.max(next.getValue() - contextLines, lineNumber + 1) - 1;
+                    }
                     for (int j = lineNumber + 1; j <= contextEndLine; ++j) {
                         DiffLine contextLine = new DiffLine(allLines.get(j - 1), DiffLine.LineType.UNCHANGED);
                         blockEntriesStack.push(new AbstractMap.SimpleEntry<>(contextLine, j));
