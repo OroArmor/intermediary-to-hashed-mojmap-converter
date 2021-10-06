@@ -22,12 +22,12 @@ public class IntermediaryToHashedMojmapConverterTest {
 			Path outputDirectory = Path.of("test_output");
 
 			IntermediaryToHashedMojmapConverter.main(new String[]{
-					"-DquiltInputFiles",
 					inputFile.toAbsolutePath().toString(),
-					"-DquiltOutputDirectory",
+					"net.fabricmc:intermediary:21w39a:v2",
+					"intermediary",
 					outputDirectory.toAbsolutePath().toString(),
-					"-DquiltMinecraft",
-					"21w39a"
+					"org.quiltmc:hashed-mojmap:21w39a-SNAPSHOT",
+					"hashed"
 			});
 		}
     }

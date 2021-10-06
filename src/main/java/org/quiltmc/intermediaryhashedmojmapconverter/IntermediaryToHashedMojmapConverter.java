@@ -1,15 +1,13 @@
 package org.quiltmc.intermediaryhashedmojmapconverter;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.List;
-import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -31,45 +29,33 @@ public class IntermediaryToHashedMojmapConverter {
     public static Logger LOGGER = LogManager.getLogger("Intermediary To Hashed Mojmap Converter", new StringFormatterMessageFactory());
 
     public static void main(String[] args) throws IOException {
-        List<String> argList = List.of(args);
+        if (args.length != 6) {
+            LOGGER.error("Usage is <inputpath> <inputmappings> <inputnamespace> <outputpath> <outputmappings> <outputnamespace>");
+        }
 
-        Path inputPath = getArgProperty("-DquiltInputFiles", argList, Path.of(System.getProperty("user.dir")), Path::of);
-        Path outputPath = getArgProperty("-DquiltOutputDirectory", argList, Path.of(System.getProperty("user.dir"), "remapped"), Path::of);
-        String minecraftVersion = getArgProperty("-DquiltMinecraft", argList, "1.17", Function.identity());
+        Path inputPath = Path.of(args[0]);
+        Path outputPath = Path.of(args[3]);
         Files.createDirectories(outputPath);
 
-        checkAndCreateTinyCache("net.fabricmc:intermediary:" + minecraftVersion + ":v2");
-        checkAndCreateTinyCache("org.quiltmc:hashed-mojmap:" + minecraftVersion + "-SNAPSHOT");
+        Path inputTinyFile = checkAndCreateTinyCache(args[1]);
+        Path outputTinyFile = checkAndCreateTinyCache(args[4]);
 
-        MappingSet officialToIntermediary = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", "intermediary", minecraftVersion + ".tiny").toFile()))), "official", "intermediary").read();
-        MappingSet officialToHashed = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", "hashed-mojmap", minecraftVersion + "-SNAPSHOT.tiny").toFile()))), "official", "hashed").read();
+        MappingSet officialToInput = new TinyMappingsReader(TinyMappingFactory.load(Files.newBufferedReader(inputTinyFile)), "official", args[2]).read();
+        MappingSet officialToOutput = new TinyMappingsReader(TinyMappingFactory.load(Files.newBufferedReader(outputTinyFile)), "official", args[5]).read();
 
-        MappingSet intermediaryToHashed = MappingSet.create().merge(officialToIntermediary.reverse()).merge(officialToHashed);
+        MappingSet inputToOutput = MappingSet.create().merge(officialToInput.reverse()).merge(officialToOutput);
 
-        if (Files.isDirectory(inputPath)) {
-            iterateOverDirectory(inputPath, Path.of("."), outputPath, intermediaryToHashed);
-        } else {
-            remapAndOutputFile(inputPath, outputPath, intermediaryToHashed);
-        }
+        Files.walkFileTree(inputPath, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                remapAndOutputFile(file, outputPath, inputToOutput);
+                LOGGER.info("Remapped file " + file.getFileName());
+                return super.visitFile(file, attrs);
+            }
+        });
     }
 
-    private static void iterateOverDirectory(Path inputPath, Path initialPath, Path outputPath, MappingSet intermediaryToHashed) {
-        File inputFilePath = new File(inputPath.toUri());
-        if (inputFilePath.isDirectory()) {
-            for (File file : inputFilePath.listFiles()) {
-                iterateOverDirectory(Path.of(file.toURI()), initialPath.resolve(inputPath.getFileName()), outputPath, intermediaryToHashed);
-            }
-        } else {
-            try {
-                remapAndOutputFile(inputPath, outputPath, intermediaryToHashed);
-                LOGGER.trace("Remapped " + inputPath.getFileName());
-            } catch (IOException e) {
-                LOGGER.error("Unable to remap " + inputPath.getFileName());
-            }
-        }
-    }
-
-    private static void remapAndOutputFile(Path inputPath, Path outputPath, MappingSet intermediaryToHashed) throws IOException {
+    private static void remapAndOutputFile(Path inputPath, Path outputPath, MappingSet inputToOutput) throws IOException {
         Deque<ClassMapping<?, ?>> mappings = new ArrayDeque<>();
 
         EnigmaFile transformed = EnigmaReader.readFile(inputPath, (type, original, signature, isMethod) -> {
@@ -80,28 +66,30 @@ public class IntermediaryToHashedMojmapConverter {
                 if (isMethod) {
                     MethodMapping methodMapping = mappings.peek().getOrCreateMethodMapping(MethodSignature.of(obfuscatedName, oldSignature));
                     return methodMapping.getDeobfuscatedName() + ";" + methodMapping.getDeobfuscatedDescriptor();
-                } else {
-                    FieldMapping fieldMapping = mappings.peek().getFieldMapping(obfuscatedName).orElseThrow(() -> new RuntimeException("Unable to find mapping for " + mappings.peek().getObfuscatedName() + "." + obfuscatedName));
-                    return fieldMapping.getDeobfuscatedName() + ";" + fieldMapping.getDeobfuscatedSignature().getType().get();
                 }
-            } else {
-                if (mappings.isEmpty()) {
-                    mappings.push(intermediaryToHashed.getOrCreateClassMapping(original));
-                } else {
-                    while (!mappings.peek().hasInnerClassMapping(original) && !mappings.isEmpty()) {
-                        mappings.pop();
-                    }
-                    mappings.push(mappings.peek().getOrCreateInnerClassMapping(original));
-                }
-                return mappings.peek().getDeobfuscatedName();
+
+                FieldMapping fieldMapping = mappings.peek().getFieldMapping(obfuscatedName).orElseThrow(() -> new RuntimeException("Unable to find mapping for " + mappings.peek().getObfuscatedName() + "." + obfuscatedName));
+                return fieldMapping.getDeobfuscatedName() + ";" + fieldMapping.getDeobfuscatedSignature().getType().get();
             }
+
+            if (mappings.isEmpty()) {
+                mappings.push(inputToOutput.getOrCreateClassMapping(original));
+            } else {
+                while (!mappings.peek().hasInnerClassMapping(original) && !mappings.isEmpty()) {
+                    mappings.pop();
+                }
+
+                mappings.push(mappings.peek().getOrCreateInnerClassMapping(original));
+            }
+
+            return mappings.peek().getDeobfuscatedName();
         });
 
         String name = transformed.getEnigmaClass().getMappedName();
         transformed.export(outputPath.resolve((name.isEmpty() ? transformed.getEnigmaClass().getObfuscatedName() : name) + ".mapping"));
     }
 
-    private static void checkAndCreateTinyCache(String artifact) throws IOException {
+    private static Path checkAndCreateTinyCache(String artifact) throws IOException {
         MavenFileDownloader.MavenArtifact mavenArtifact = MavenFileDownloader.MavenArtifact.from(artifact);
         Path cachedFilePath = Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", mavenArtifact.artifactId(), mavenArtifact.version() + ".jar");
         if (!Files.exists(cachedFilePath)) {
@@ -110,14 +98,6 @@ public class IntermediaryToHashedMojmapConverter {
             ZipEntry tinyFileEntry = jarFile.stream().filter(zipEntry -> zipEntry.getName().endsWith(".tiny")).findFirst().get();
             Files.write(cachedFilePath.getParent().resolve(mavenArtifact.version() + ".tiny"), jarFile.getInputStream(tinyFileEntry).readAllBytes());
         }
-    }
-
-    private static <T> T getArgProperty(String name, List<String> args, T defaultValue, Function<String, T> converter) {
-        int propertyIndex = args.indexOf(name);
-        if (propertyIndex == -1) {
-            System.out.println("Property " + name + " was not set. Defaulting to " + defaultValue);
-            return defaultValue;
-        }
-        return converter.apply(args.get(propertyIndex + 1));
+        return cachedFilePath.getParent().resolve(mavenArtifact.version() + ".tiny");
     }
 }

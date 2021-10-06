@@ -9,14 +9,13 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
-import com.sun.source.tree.Tree;
-import org.cadixdev.lorenz.model.FieldMapping;
-import org.cadixdev.lorenz.model.MethodMapping;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class EnigmaReader {
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+    
     public static EnigmaFile readFile(Path path) throws IOException {
         return readFile(path, null);
     }
@@ -43,7 +42,7 @@ public class EnigmaReader {
 
         String line = lines.get(currentLine.getAndIncrement());
         int currentIndent = line.indexOf(EnigmaMapping.Type.CLASS.name());
-        String[] tokens = line.trim().split("\\s+");
+        String[] tokens = WHITESPACE.split(line.trim());
 
         obfuscatedName = visitor.visit(EnigmaMapping.Type.CLASS, tokens[1], false, false);
         name = tokens.length < 3 ? "" : tokens[2];
@@ -54,7 +53,7 @@ public class EnigmaReader {
                 currentLine.decrementAndGet();
                 return new EnigmaClass(obfuscatedName, name, comment.toString(), methods, fields, nestedClasses);
             }
-            tokens = line.trim().split("\\s+");
+            tokens = WHITESPACE.split(line.trim());
             switch (EnigmaMapping.Type.valueOf(tokens[0])) {
                 case COMMENT -> addComment(comment, line);
                 case FIELD -> fields.add(parseField(lines, currentLine, visitor));
@@ -82,7 +81,7 @@ public class EnigmaReader {
         Map<Integer, String> parameters = new TreeMap<>();
 
         String line = lines.get(currentLine.getAndIncrement());
-        String[] tokens = line.trim().split("\\s+");
+        String[] tokens = WHITESPACE.split(line.trim());
 
         String visited = visitor.visit(EnigmaMapping.Type.FIELD, tokens[1] + ";" + (tokens.length < 4 ? tokens[2] : tokens[3]), true, true);
 
@@ -92,7 +91,7 @@ public class EnigmaReader {
 
         for (; currentLine.get() < lines.size(); currentLine.getAndIncrement()) {
             line = lines.get(currentLine.get());
-            tokens = line.trim().split("\\s+");
+            tokens = WHITESPACE.split(line.trim());
             if (EnigmaMapping.Type.valueOf(tokens[0]) == EnigmaMapping.Type.COMMENT) {
                 addComment(comment, line);
             } else if (EnigmaMapping.Type.valueOf(tokens[0]) == EnigmaMapping.Type.ARG){
@@ -113,7 +112,7 @@ public class EnigmaReader {
         String signature;
 
         String line = lines.get(currentLine.getAndIncrement());
-        String[] tokens = line.trim().split("\\s+");
+        String[] tokens = WHITESPACE.split(line.trim());
 
         String visited = visitor.visit(EnigmaMapping.Type.FIELD, tokens[1] + ";" + (tokens.length < 4 ? tokens[2] : tokens[3]), true, false);
 
@@ -123,7 +122,7 @@ public class EnigmaReader {
 
         for (; currentLine.get() < lines.size(); currentLine.getAndIncrement()) {
             line = lines.get(currentLine.get());
-            tokens = line.trim().split("\\s+");
+            tokens = WHITESPACE.split(line.trim());
             if (EnigmaMapping.Type.valueOf(tokens[0]) == EnigmaMapping.Type.COMMENT) {
                 addComment(comment, line);
             } else {
