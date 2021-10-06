@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -14,6 +13,9 @@ import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.StringFormatterMessageFactory;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.ClassMapping;
@@ -26,18 +28,18 @@ import net.fabricmc.lorenztiny.TinyMappingsReader;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 
 public class IntermediaryToHashedMojmapConverter {
+    public static Logger LOGGER = LogManager.getLogger("Intermediary To Hashed Mojmap Converter", new StringFormatterMessageFactory());
 
     public static void main(String[] args) throws IOException {
         List<String> argList = List.of(args);
-        System.out.println(argList);
 
         Path inputPath = getArgProperty("-DquiltInputFiles", argList, Path.of(System.getProperty("user.dir")), Path::of);
         Path outputPath = getArgProperty("-DquiltOutputDirectory", argList, Path.of(System.getProperty("user.dir"), "remapped"), Path::of);
         String minecraftVersion = getArgProperty("-DquiltMinecraft", argList, "1.17", Function.identity());
         Files.createDirectories(outputPath);
 
-        checkAndCreateTinyCache(minecraftVersion, "intermediary", "-v2");
-        checkAndCreateTinyCache(minecraftVersion, "hashed-mojmap", "");
+        checkAndCreateTinyCache("net.fabricmc:intermediary:" + minecraftVersion + ":v2");
+        checkAndCreateTinyCache("org.quiltmc:hashed-mojmap:" + minecraftVersion + "-SNAPSHOT");
 
         MappingSet officialToIntermediary = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", "intermediary", minecraftVersion + ".tiny").toFile()))), "official", "intermediary").read();
         MappingSet officialToHashed = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", "hashed-mojmap", minecraftVersion + ".tiny").toFile()))), "official", "hashed").read();
@@ -97,16 +99,14 @@ public class IntermediaryToHashedMojmapConverter {
         transformed.export(outputPath.resolve(inputPath.getFileName()));
     }
 
-    private static void checkAndCreateTinyCache(String minecraftVersion, String name, String classifier) throws IOException {
-        Path cachedFilePath = Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", name, minecraftVersion + ".jar");
-        if (!cachedFilePath.toFile().exists()) {
-            URL downloadableMavenURL = new URL("https://maven.quiltmc.org/repository/release/org/quiltmc/" + name + "/" + minecraftVersion + "/" + name + "-" + minecraftVersion + classifier + ".jar");
-            Files.createDirectories(cachedFilePath.getParent());
-            Files.createFile(cachedFilePath);
-            Files.write(cachedFilePath, downloadableMavenURL.openStream().readAllBytes());
+    private static void checkAndCreateTinyCache(String artifact) throws IOException {
+        MavenFileDownloader.MavenArtifact mavenArtifact = MavenFileDownloader.MavenArtifact.from(artifact);
+        Path cachedFilePath = Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", mavenArtifact.artifactId(), mavenArtifact.version() + ".jar");
+        if (!Files.exists(cachedFilePath)) {
+            MavenFileDownloader.downloadFile(mavenArtifact, cachedFilePath);
             ZipFile jarFile = new ZipFile(cachedFilePath.toFile());
-            ZipEntry tinyFileEntry = jarFile.getEntry((name.equals("hashed-mojmap") ? "hashed" : "mappings") + "/mappings.tiny");
-            Files.write(cachedFilePath.getParent().resolve(minecraftVersion + ".tiny"), jarFile.getInputStream(tinyFileEntry).readAllBytes());
+            ZipEntry tinyFileEntry = jarFile.stream().filter(zipEntry -> zipEntry.getName().endsWith(".tiny")).findFirst().get();
+            Files.write(cachedFilePath.getParent().resolve(mavenArtifact.version() + ".tiny"), jarFile.getInputStream(tinyFileEntry).readAllBytes());
         }
     }
 
