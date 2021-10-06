@@ -46,7 +46,7 @@ public class IntermediaryToHashedMojmapConverter {
 
         MappingSet intermediaryToHashed = MappingSet.create().merge(officialToIntermediary.reverse()).merge(officialToHashed);
 
-        if (inputPath.toFile().isDirectory()) {
+        if (Files.isDirectory(inputPath)) {
             iterateOverDirectory(inputPath, Path.of("."), outputPath, intermediaryToHashed);
         } else {
             remapAndOutputFile(inputPath, outputPath, intermediaryToHashed);
@@ -61,9 +61,10 @@ public class IntermediaryToHashedMojmapConverter {
             }
         } else {
             try {
-                remapAndOutputFile(inputPath, outputPath.resolve(initialPath), intermediaryToHashed);
+                remapAndOutputFile(inputPath, outputPath, intermediaryToHashed);
+                LOGGER.trace("Remapped " + inputPath.getFileName());
             } catch (IOException e) {
-                System.err.println("Unable to remap " + inputPath.getFileName());
+                LOGGER.error("Unable to remap " + inputPath.getFileName());
             }
         }
     }
@@ -96,7 +97,8 @@ public class IntermediaryToHashedMojmapConverter {
             }
         });
 
-        transformed.export(outputPath.resolve(inputPath.getFileName()));
+        String name = transformed.getEnigmaClass().getMappedName();
+        transformed.export(outputPath.resolve((name.isEmpty() ? transformed.getEnigmaClass().getObfuscatedName() : name) + ".mapping"));
     }
 
     private static void checkAndCreateTinyCache(String artifact) throws IOException {
