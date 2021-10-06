@@ -43,8 +43,6 @@ public final class MavenFileDownloader {
             } catch (IOException e) {
                 continue;
             }
-
-            IntermediaryToHashedMojmapConverter.LOGGER.info("Found %s at %s", mavenArtifact, url);
             return;
         }
 

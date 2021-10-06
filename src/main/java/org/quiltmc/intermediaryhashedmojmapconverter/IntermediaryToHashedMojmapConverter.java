@@ -11,9 +11,6 @@ import java.util.Deque;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.StringFormatterMessageFactory;
 import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.ClassMapping;
@@ -26,11 +23,10 @@ import net.fabricmc.lorenztiny.TinyMappingsReader;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 
 public class IntermediaryToHashedMojmapConverter {
-    public static Logger LOGGER = LogManager.getLogger("Intermediary To Hashed Mojmap Converter", new StringFormatterMessageFactory());
 
     public static void main(String[] args) throws IOException {
         if (args.length != 6) {
-            LOGGER.error("Usage is <inputpath> <inputmappings> <inputnamespace> <outputpath> <outputmappings> <outputnamespace>");
+            System.err.println("Usage is <inputpath> <inputmappings> <inputnamespace> <outputpath> <outputmappings> <outputnamespace>");
         }
 
         Path inputPath = Path.of(args[0]);
@@ -49,7 +45,6 @@ public class IntermediaryToHashedMojmapConverter {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 remapAndOutputFile(file, outputPath, inputToOutput);
-                LOGGER.info("Remapped file " + file.getFileName());
                 return super.visitFile(file, attrs);
             }
         });
