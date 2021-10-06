@@ -27,11 +27,8 @@ public class IntermediaryToHashedMojmapConverterTest {
 					"-DquiltOutputDirectory",
 					outputDirectory.toAbsolutePath().toString(),
 					"-DquiltMinecraft",
-					"1.17.1"
+					"21w39a"
 			});
 		}
-
-//		MavenFileDownloader.downloadFile(MavenFileDownloader.MavenArtifact.from("net.fabricmc:intermediary:21w39a:v2"), Path.of(".", "output.jar"));
-//        MavenFileDownloader.downloadFile(MavenFileDownloader.MavenArtifact.from("org.quiltmc:hashed-mojmap:21w39a-SNAPSHOT"), Path.of(".", "output2.jar"));
     }
 }

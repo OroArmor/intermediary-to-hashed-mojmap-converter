@@ -42,7 +42,7 @@ public class IntermediaryToHashedMojmapConverter {
         checkAndCreateTinyCache("org.quiltmc:hashed-mojmap:" + minecraftVersion + "-SNAPSHOT");
 
         MappingSet officialToIntermediary = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", "intermediary", minecraftVersion + ".tiny").toFile()))), "official", "intermediary").read();
-        MappingSet officialToHashed = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", "hashed-mojmap", minecraftVersion + ".tiny").toFile()))), "official", "hashed").read();
+        MappingSet officialToHashed = new TinyMappingsReader(TinyMappingFactory.load(new BufferedReader(new FileReader(Path.of(System.getProperty("user.home"), ".intermediaryhashedmojmapconverter", "hashed-mojmap", minecraftVersion + "-SNAPSHOT.tiny").toFile()))), "official", "hashed").read();
 
         MappingSet intermediaryToHashed = MappingSet.create().merge(officialToIntermediary.reverse()).merge(officialToHashed);
 
