@@ -25,7 +25,10 @@ public class EnigmaFile {
     }
 
     private void writeClass(EnigmaClass clazz, StringBuilder builder, int indent) {
-        builder.append("\t".repeat(indent)).append("CLASS ").append(clazz.getObfuscatedName()).append(" ").append(clazz.getMappedName());
+        builder.append("\t".repeat(indent)).append("CLASS ").append(clazz.getObfuscatedName());
+        if (!clazz.getMappedName().isEmpty()) {
+            builder.append(" ").append(clazz.getMappedName());
+        }
         builder.append("\n");
         addComments(clazz, builder, indent);
         for (EnigmaField field : clazz.getFields()) {
@@ -40,14 +43,23 @@ public class EnigmaFile {
 
         for (EnigmaMethod method : clazz.getMethods()) {
             builder.append("\t".repeat(indent + 1)).append("METHOD ").append(method.getObfuscatedName()).append(" ");
-            if(!method.getMappedName().isEmpty()) {
+            if (!method.getMappedName().isEmpty()) {
                 builder.append(method.getMappedName()).append(" ");
             }
             builder.append(method.getSignature());
             builder.append("\n");
             addComments(method, builder, indent + 1);
 
-            method.getParameters().forEach((index, parameter) -> builder.append("\t".repeat(indent + 2)).append("ARG ").append(index).append(" ").append(parameter).append("\n"));
+            method.getParameters().forEach((index, parameter) -> {
+                builder.append("\t".repeat(indent + 2)).append("ARG ").append(index).append(" ").append(parameter.name()).append("\n");
+                if (!parameter.comment().isEmpty()) {
+                    String[] commentLines = parameter.comment().split("\n");
+                    for(String commentLine : commentLines) {
+                        builder.append("\t".repeat(indent + 3)).append("COMMENT").append(!commentLine.isEmpty() ? " " + commentLine : "");
+                        builder.append("\n");
+                    }
+                }
+            });
         }
 
         for(EnigmaClass nestedClass : clazz.getNestedClasses()) {
@@ -59,7 +71,7 @@ public class EnigmaFile {
         if (!mapping.getComment().isEmpty()) {
             String[] commentLines = mapping.getComment().split("\n");
             for(String commentLine : commentLines) {
-                builder.append("\t".repeat(indent + 1)).append("COMMENT ").append(commentLine);
+                builder.append("\t".repeat(indent + 1)).append("COMMENT").append(!commentLine.isEmpty() ? " " + commentLine : "");
                 builder.append("\n");
             }
         }

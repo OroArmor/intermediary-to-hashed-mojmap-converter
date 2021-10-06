@@ -91,7 +91,7 @@ public class EnigmaReader {
         String obfuscatedName;
         StringBuilder comment = new StringBuilder();
         String signature;
-        Map<Integer, String> parameters = new TreeMap<>();
+        Map<Integer, EnigmaMethod.Parameter> parameters = new TreeMap<>();
 
         String line = lines.get(currentLine.getAndIncrement());
         String[] tokens = line.trim().split("\\s+");
@@ -107,8 +107,21 @@ public class EnigmaReader {
             tokens = line.trim().split("\\s+");
             if (EnigmaMapping.Type.valueOf(tokens[0]) == EnigmaMapping.Type.COMMENT) {
                 addComment(comment, line);
-            } else if (EnigmaMapping.Type.valueOf(tokens[0]) == EnigmaMapping.Type.ARG){
-                parameters.put(Integer.parseInt(tokens[1]), tokens[2]);
+            } else if (EnigmaMapping.Type.valueOf(tokens[0]) == EnigmaMapping.Type.ARG) {
+                // Read any parameter comment
+                StringBuilder parameterComment = new StringBuilder();
+                int i = currentLine.get() + 1;
+                while (i < lines.size()) {
+                    String nextLine = lines.get(i);
+                    if (nextLine.lastIndexOf("\t") <= line.lastIndexOf("\t")) {
+                        break;
+                    }
+                    addComment(parameterComment, nextLine);
+                    ++i;
+                    currentLine.incrementAndGet();
+                }
+
+                parameters.put(Integer.parseInt(tokens[1]), new EnigmaMethod.Parameter(tokens[2], parameterComment.toString()));
             } else {
                 currentLine.decrementAndGet();
                 break;

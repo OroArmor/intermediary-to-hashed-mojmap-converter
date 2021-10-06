@@ -1,8 +1,8 @@
 package org.quiltmc.intermediaryhashedmojmapconverter.patch;
 
 import org.junit.jupiter.api.Test;
+import org.quiltmc.intermediaryhashedmojmapconverter.TestUtil;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class PatchTest {
     @Test
     public void testApply() throws IOException {
-        Path resourcesDir = new File(PatchTest.class.getClassLoader().getResource("org/quiltmc/patch").getPath()).toPath();
+        Path resourcesDir = TestUtil.getResource("org/quiltmc/patch");
         Path patchesDir = resourcesDir.resolve("patches");
         Path filesDir = resourcesDir.resolve("files");
         Path expectedFilesDir = resourcesDir.resolve("expected_files");
