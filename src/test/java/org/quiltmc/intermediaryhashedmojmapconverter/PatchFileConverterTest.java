@@ -22,7 +22,7 @@ public class PatchFileConverterTest {
     private static final Path PATCHES_DIR = RESOURCES_DIR.resolve("patches");
     private static final Path EXPECTED_PATCHES_DIR = RESOURCES_DIR.resolve("expected");
     private static final Path OUTPUTS_DIR;
-    private final MappingSet inputToOutput = Util.createInputToOutputMappings("net.fabricmc:intermediary:1.17.1", "intermediary", "org.quiltmc:hashed-mojmap:1.17.1-SNAPSHOT", "hashed");
+    private final MappingSet inputToOutput = Util.createInputToOutputMappings("net.fabricmc:intermediary:1.17.1", "intermediary", "org.quiltmc:hashed-mojmap:1.17.1-20210916.004720-4", "hashed");
 
     private static String inputRepoHead;
 

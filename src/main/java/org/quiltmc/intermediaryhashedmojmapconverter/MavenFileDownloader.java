@@ -6,6 +6,8 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -22,15 +24,20 @@ public final class MavenFileDownloader {
         for (String maven : MAVEN_REPOSITORIES) {
             URL url;
             if (mavenArtifact.isSnapshot()) {
-                URL metadataURL = new URL(maven + "/" + mavenArtifact.getMavenMetadataPath());
-                JsonNode metadata;
-                try {
-                    metadata = new XmlMapper().readTree(metadataURL).get("versioning").get("snapshot");
-                } catch (Exception e) {
-                    continue;
+                String uniqueSnapshotVersion;
+                if (mavenArtifact.isUniqueSnapshot()) {
+                    uniqueSnapshotVersion = mavenArtifact.getUniqueSnapshot();
+                } else {
+                    URL metadataURL = new URL(maven + "/" + mavenArtifact.getMavenMetadataPath());
+                    JsonNode metadata;
+                    try {
+                        metadata = new XmlMapper().readTree(metadataURL).get("versioning").get("snapshot");
+                    } catch (Exception e) {
+                        continue;
+                    }
+                    uniqueSnapshotVersion = mavenArtifact.version().substring(0, mavenArtifact.version().length() - 9) + "-" + metadata.get("timestamp").asText() + "-" + metadata.get("buildNumber").asText();
                 }
-                String recentVersion = mavenArtifact.version().substring(0, mavenArtifact.version().length() - 9) + "-" + metadata.get("timestamp").asText() + "-" + metadata.get("buildNumber").asText();
-                url = new URL(maven + "/" + mavenArtifact.getMavenPath() + "/" + mavenArtifact.withVersion(recentVersion).getArtifactName() + ".jar");
+                url = new URL(maven + "/" + mavenArtifact.getMavenPath() + "/" + mavenArtifact.withVersion(uniqueSnapshotVersion).getArtifactName() + ".jar");
             } else {
                 url = new URL(maven + "/" + mavenArtifact.getMavenArtifactPath(".jar"));
             }
@@ -49,7 +56,9 @@ public final class MavenFileDownloader {
         throw new RuntimeException("Unable to find artifact " + mavenArtifact);
     }
 
-    public record MavenArtifact(String group, String artifactId, String version, @Nullable String classifier, boolean isSnapshot) {
+    public record MavenArtifact(String group, String artifactId, String version, @Nullable String classifier, Matcher uniqueSnapshotVersionMatcher) {
+        private static final Pattern UNIQUE_SNAPSHOT = Pattern.compile(".+-(\\d{8}\\.\\d{6}-\\d+)");
+
         public String getArtifactName() {
             return artifactId + "-" + version + (classifier == null ? "" : "-" + classifier);
         }
@@ -67,7 +76,26 @@ public final class MavenFileDownloader {
         }
 
         public MavenArtifact withVersion(String newVersion) {
-            return new MavenArtifact(classifier, artifactId, newVersion, classifier, isSnapshot);
+            return new MavenArtifact(classifier, artifactId, newVersion, classifier, UNIQUE_SNAPSHOT.matcher(newVersion));
+        }
+
+        public boolean isSnapshot() {
+            return isNonUniqueSnapshot() || isUniqueSnapshot();
+        }
+
+        public boolean isNonUniqueSnapshot() {
+            return version.endsWith("-SNAPSHOT");
+        }
+
+        public boolean isUniqueSnapshot() {
+            return uniqueSnapshotVersionMatcher.matches();
+        }
+
+        public String getUniqueSnapshot() {
+            if (!isUniqueSnapshot()) {
+                return null;
+            }
+            return uniqueSnapshotVersionMatcher.group(1);
         }
 
         public String toString() {
@@ -81,7 +109,7 @@ public final class MavenFileDownloader {
             String version = parts[2];
             String classifier = parts.length == 4 ? parts[3] : null;
 
-            return new MavenArtifact(group, artifactId, version, classifier, version.endsWith("-SNAPSHOT"));
+            return new MavenArtifact(group, artifactId, version, classifier, UNIQUE_SNAPSHOT.matcher(version));
         }
     }
 }
