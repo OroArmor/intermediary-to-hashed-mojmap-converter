@@ -13,11 +13,8 @@ import org.quiltmc.intermediaryhashedmojmapconverter.patch.DiffBlock;
 import org.quiltmc.intermediaryhashedmojmapconverter.patch.DiffLine;
 import org.quiltmc.intermediaryhashedmojmapconverter.patch.Patch;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,7 +23,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
@@ -35,49 +31,42 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
-import static org.quiltmc.intermediaryhashedmojmapconverter.IntermediaryToHashedMojmapConverter.*;
-
 public class PatchFileConverter {
-    private static final String GIT_PATH;
+    public static void main(String[] args) throws IOException {
+        if (args.length != 8) {
+            System.err.println("Usage is <inputpath> <inputmappings> <inputnamespace> <outputpath> <outputmappings> <outputnamespace> <inputrepo> <outputrepo>");
+            System.exit(-1);
+        }
 
-    public static void main(String[] a) throws IOException {
-        List<String> args = List.of(a);
-        Path inputPath = getArgProperty("quilt.inputFiles", "-DquiltInputFiles", args, Path.of(System.getProperty("user.dir")), Path::of);
-        Path outputPath = getArgProperty("quilt.outputDirectory", "-DquiltOutputDirectory", args, Path.of(System.getProperty("user.dir"), "remapped"), Path::of);
-        String minecraftVersion = getArgProperty("quilt.minecraft", "-DquiltMinecraft", args, "1.17", Function.identity());
+        Path inputPath = Path.of(args[0]);
+        Path outputPath = Path.of(args[3]);
         Files.createDirectories(outputPath);
 
-        Path yarnDir = getArgProperty("quilt.yarnDir", "-DyarnDir", args, Path.of(System.getProperty("user.dir"), "yarn"), Path::of);
-        Path mappingsDir = getArgProperty("quilt.mappingsDir", "-DquiltMappingsDir", args, Path.of(System.getProperty("user.dir"), "quilt-mappings"), Path::of);
+        MappingSet inputToOutput = Util.createInputToOutputMappings(args[1], args[2], args[4], args[5]);
 
-        MappingSet intermediaryToHashed = getIntermediaryToHashed(minecraftVersion);
+        Path inputRepo = Path.of(args[6]);
+        Path outputRepo = Path.of(args[7]);
 
-        // Check for uncommitted changes in yarn
-        String uncommittedYarnChanges = runGitCommand(yarnDir, "diff-index", "HEAD", "--");
-        if (!uncommittedYarnChanges.isEmpty()) {
-            System.err.println("You have uncommitted changes in the yarn repository. Please commit or stash them before continuing\n"
-                    + uncommittedYarnChanges);
+        // Check for uncommitted changes in the input repo
+        String uncommittedInputRepoChanges = Util.getUncommittedChanges(inputRepo);
+        if (!uncommittedInputRepoChanges.isEmpty()) {
+            System.err.println("You have uncommitted changes in the input repository. Please commit or stash them before continuing\n"
+                    + uncommittedInputRepoChanges);
             System.exit(-1);
         }
 
         // Get what HEAD is pointing to
-        String[] yarnHeadInfo = runGitCommand(yarnDir, "log", "HEAD", "--format=\"%H;%D\"", "-n", "1").split(";");
-        String yarnHead = yarnHeadInfo[1].contains("HEAD ->")
-                // HEAD is pointing to a branch
-                ? yarnHeadInfo[1].substring(yarnHeadInfo[1].indexOf("HEAD -> ") + 8, yarnHeadInfo[1].indexOf(","))
-                // HEAD is detached
-                : yarnHeadInfo[0];
+        String inputRepoHead = Util.getRepoHead(inputRepo);
 
         Files.walkFileTree(inputPath, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
                 try {
                     Path relative = inputPath.relativize(path);
-                    convertPatchFile(path, outputPath.resolve(relative), intermediaryToHashed, yarnDir, mappingsDir);
+                    convertPatchFile(path, outputPath.resolve(relative), inputToOutput, inputRepo, outputRepo);
                 } catch (Exception e) {
                     System.err.println("Failed to convert " + path);
                     e.printStackTrace();
@@ -86,11 +75,11 @@ public class PatchFileConverter {
             }
         });
 
-        // Reset yarn to how it was before
-        runGitCommand(yarnDir, "checkout", yarnHead);
+        // Reset the input repo to how it was before
+        Util.runGitCommand(inputRepo, "checkout", inputRepoHead);
     }
 
-    public static void convertPatchFile(Path path, Path outputPath, MappingSet intermediaryToHashed, Path yarnDir, Path qmDir) throws IOException {
+    public static void convertPatchFile(Path path, Path outputPath, MappingSet inputToOutput, Path inputRepo, Path outputRepo) throws IOException {
         // Steps
         // 1. Read patch file
         // 2. Read yarn `from` file, store class intermediary to hashed mappings
@@ -124,20 +113,20 @@ public class PatchFileConverter {
                 diffs.add(diff);
                 continue;
             }
-            Path yarnFilePath = yarnDir.resolve(diff.getFrom());
+            Path yarnFilePath = inputRepo.resolve(diff.getFrom());
             List<ClassMapping<?, ?>> classesIntermediaryToHashed = new ArrayList<>();
 
             // 2
             String fromLine = patch.getHeader().get(0);
             String commitFrom = fromLine.substring(fromLine.lastIndexOf("From ") + 5, fromLine.lastIndexOf(" Mon Sep 17 00:00:00 2001"));
-            String output = runGitCommand(yarnDir, "checkout", commitFrom + "^");
+            String output = Util.runGitCommand(inputRepo, "checkout", commitFrom + "^");
             if (output.contains("error:")) {
-                throw new RuntimeException("There was an error checking out commit previous to patch\n" + output);
+                throw new RuntimeException("There was an error checking out the commit previous to the patch " + path + "\n" + output);
             }
 
             EnigmaReader.readFile(yarnFilePath, (type, original, signature, isMethod) -> {
                 if (type == EnigmaMapping.Type.CLASS) {
-                    Optional<? extends ClassMapping<?, ?>> optionalMapping = intermediaryToHashed.getClassMapping(original);
+                    Optional<? extends ClassMapping<?, ?>> optionalMapping = inputToOutput.getClassMapping(original);
                     ClassMapping<?, ?> mapping = null;
                     if (optionalMapping.isPresent()) {
                         mapping = optionalMapping.get();
@@ -166,7 +155,7 @@ public class PatchFileConverter {
                     DiffLine.LineType type = diffLine.getType();
                     if (type != DiffLine.LineType.UNCHANGED) {
                         // 3.3
-                        String remappedLine = remapLine(diffLine.getLine(), intermediaryToHashed, classesIntermediaryToHashed);
+                        String remappedLine = remapLine(diffLine.getLine(), inputToOutput, classesIntermediaryToHashed);
                         DiffLine remappedDiffLine = new DiffLine(remappedLine, type);
                         switch (type) {
                             case REMOVED -> remappedRemovedLines.add(remappedDiffLine);
@@ -177,7 +166,7 @@ public class PatchFileConverter {
             }
 
             // 4
-            Path qmFile = qmDir.resolve(diff.getFrom());
+            Path qmFile = outputRepo.resolve(diff.getFrom());
             // 4.1
             EnigmaFile enigmaQmFile = EnigmaReader.readFile(qmFile);
             List<String> enigmaQmFileLines = List.of(enigmaQmFile.toString().split("\n"));
@@ -452,43 +441,5 @@ public class PatchFileConverter {
                 lines.add(methodDefinitionIndex++, line);
             }
         }
-    }
-
-    private static String runGitCommand(Path directory, String... args) throws IOException {
-        String[] command = new String[args.length + 1];
-        System.arraycopy(args, 0, command, 1, args.length);
-        command[0] = GIT_PATH;
-        ProcessBuilder processBuilder = new ProcessBuilder(command).directory(directory.toFile()).redirectErrorStream(true);
-        Process process = processBuilder.start();
-
-        String out;
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            process.waitFor();
-            out = reader.lines().collect(Collectors.joining("\n"));
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Failed to wait for git command '" + Arrays.stream(command).skip(1).collect(Collectors.joining(" ")) + "'", e);
-        }
-
-        return out;
-    }
-
-    static {
-        String gitPath = null;
-        for (String dirname : System.getenv("PATH").split(File.pathSeparator)) {
-            File file = new File(dirname, "git.exe");
-            if (file.isFile() && file.canExecute()) {
-                gitPath = file.getAbsolutePath();
-            } else {
-                file = new File(dirname, "git");
-                if (file.isFile() && file.canExecute()) {
-                    gitPath = file.getAbsolutePath();
-                }
-            }
-        }
-
-        if (gitPath == null) {
-            throw new RuntimeException("No git executable found in PATH");
-        }
-        GIT_PATH = gitPath;
     }
 }
