@@ -76,4 +76,8 @@ public class EnigmaFile {
             }
         }
     }
+
+    public EnigmaClass getEnigmaClass() {
+        return clazz;
+    }
 }
