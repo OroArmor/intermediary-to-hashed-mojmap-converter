@@ -24,9 +24,8 @@ public final class MavenFileDownloader {
         for (String maven : MAVEN_REPOSITORIES) {
             URL url;
             if (mavenArtifact.isSnapshot()) {
-                String uniqueSnapshotVersion;
                 if (mavenArtifact.isUniqueSnapshot()) {
-                    uniqueSnapshotVersion = mavenArtifact.getUniqueSnapshot();
+                    url = new URL(maven + "/" + mavenArtifact.getMavenPath() + "/" + mavenArtifact.getArtifactName() + ".jar");
                 } else {
                     URL metadataURL = new URL(maven + "/" + mavenArtifact.getMavenMetadataPath());
                     JsonNode metadata;
@@ -35,9 +34,9 @@ public final class MavenFileDownloader {
                     } catch (Exception e) {
                         continue;
                     }
-                    uniqueSnapshotVersion = mavenArtifact.version().substring(0, mavenArtifact.version().length() - 9) + "-" + metadata.get("timestamp").asText() + "-" + metadata.get("buildNumber").asText();
+                    String recentVersion = mavenArtifact.version().substring(0, mavenArtifact.version().length() - 9) + "-" + metadata.get("timestamp").asText() + "-" + metadata.get("buildNumber").asText();
+                    url = new URL(maven + "/" + mavenArtifact.getMavenPath() + "/" + mavenArtifact.withVersion(recentVersion).getArtifactName() + ".jar");
                 }
-                url = new URL(maven + "/" + mavenArtifact.getMavenPath() + "/" + mavenArtifact.withVersion(uniqueSnapshotVersion).getArtifactName() + ".jar");
             } else {
                 url = new URL(maven + "/" + mavenArtifact.getMavenArtifactPath(".jar"));
             }
@@ -57,7 +56,7 @@ public final class MavenFileDownloader {
     }
 
     public record MavenArtifact(String group, String artifactId, String version, @Nullable String classifier, Matcher uniqueSnapshotVersionMatcher) {
-        private static final Pattern UNIQUE_SNAPSHOT = Pattern.compile(".+-(\\d{8}\\.\\d{6}-\\d+)");
+        private static final Pattern UNIQUE_SNAPSHOT = Pattern.compile("(.+)-\\d{8}\\.\\d{6}-\\d+");
 
         public String getArtifactName() {
             return artifactId + "-" + version + (classifier == null ? "" : "-" + classifier);
@@ -68,7 +67,7 @@ public final class MavenFileDownloader {
         }
 
         public String getMavenPath() {
-            return group.replace(".", "/") + "/" + artifactId + "/" + version;
+            return group.replace(".", "/") + "/" + artifactId + "/" + (!isUniqueSnapshot() ? version : getNonUniqueSnapshot());
         }
 
         public String getMavenArtifactPath(String fileExtension) {
@@ -91,11 +90,11 @@ public final class MavenFileDownloader {
             return uniqueSnapshotVersionMatcher.matches();
         }
 
-        public String getUniqueSnapshot() {
+        private String getNonUniqueSnapshot() {
             if (!isUniqueSnapshot()) {
-                return null;
+                return isNonUniqueSnapshot() ? version : "";
             }
-            return uniqueSnapshotVersionMatcher.group(1);
+            return uniqueSnapshotVersionMatcher.replaceAll("$1-SNAPSHOT");
         }
 
         public String toString() {
