@@ -2,9 +2,6 @@ package org.quiltmc.intermediaryhashedmojmapconverter.patch;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class DiffBlock {
     private final int sourceLine;
@@ -76,5 +73,37 @@ public class DiffBlock {
 
     public int getDestSize() {
         return this.destSize;
+    }
+
+    public int getSourceLineNumber(DiffLine line) {
+        if (!line.getType().increasesSourceLineNumber()) {
+            throw new IllegalArgumentException();
+        }
+        for (int i = 0, j = 0; i < diffLines.size(); ++i) {
+            DiffLine diffLine = diffLines.get(i);
+            if (diffLine.getType().increasesSourceLineNumber()) {
+                if (line.equals(diffLine)) {
+                    return sourceLine + j;
+                }
+                ++j;
+            }
+        }
+        return -1;
+    }
+
+    public int getDestLineNumber(DiffLine line) {
+        if (!line.getType().increasesDestLineNumber()) {
+            throw new IllegalArgumentException();
+        }
+        for (int i = 0, j = 0; i < diffLines.size(); ++i) {
+            DiffLine diffLine = diffLines.get(i);
+            if (diffLine.getType().increasesDestLineNumber()) {
+                if (line.equals(diffLine)) {
+                    return destLine + j;
+                }
+                ++j;
+            }
+        }
+        return -1;
     }
 }

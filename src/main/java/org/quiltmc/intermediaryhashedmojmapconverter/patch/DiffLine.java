@@ -21,6 +21,10 @@ public class DiffLine {
         return (this.getType() == LineType.REMOVED ? "-" : (this.type == LineType.ADDED ? "+" : " ")) + this.getLine();
     }
 
+    public String toString() {
+        return this.getDiffFormattedLine();
+    }
+
     public enum LineType {
         REMOVED(true, false),
         ADDED(false, true),

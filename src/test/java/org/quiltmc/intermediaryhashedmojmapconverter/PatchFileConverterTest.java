@@ -44,7 +44,7 @@ public class PatchFileConverterTest {
     public static List<Arguments> provideConvertPatchFileArguments() throws IOException {
         return Files.walk(PATCHES_DIR).filter(path -> !Files.isDirectory(path)).map(path -> Arguments.of(path, PATCHES_DIR.relativize(path))).collect(Collectors.toList());
     }
-    
+
     @BeforeAll
     public static void prepare() throws IOException {
         assertTrue(Files.exists(INPUT_REPO_PATH), "The input repository " + INPUT_REPO_PATH + " does not exist");
