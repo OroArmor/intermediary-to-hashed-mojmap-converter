@@ -8,6 +8,8 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -41,10 +43,18 @@ public class IntermediaryToHashedMojmapConverter {
 
         MappingSet inputToOutput = MappingSet.create().merge(officialToInput.reverse()).merge(officialToOutput);
 
+        ExecutorService executor = Executors.newFixedThreadPool(8);
+
         Files.walkFileTree(inputPath, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                remapAndOutputFile(file, outputPath, inputToOutput);
+                executor.submit(() -> {
+                    try {
+                        remapAndOutputFile(file, outputPath, inputToOutput);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
                 return super.visitFile(file, attrs);
             }
         });
@@ -54,30 +64,35 @@ public class IntermediaryToHashedMojmapConverter {
         Deque<ClassMapping<?, ?>> mappings = new ArrayDeque<>();
 
         EnigmaFile transformed = EnigmaReader.readFile(inputPath, (type, original, signature, isMethod) -> {
-            if (signature) {
-                String obfuscatedName = original.substring(0, original.indexOf(";"));
-                String oldSignature = original.substring(original.indexOf(";") + 1);
+            try {
+                if (signature) {
+                    String obfuscatedName = original.substring(0, original.indexOf(";"));
+                    String oldSignature = original.substring(original.indexOf(";") + 1);
 
-                if (isMethod) {
-                    MethodMapping methodMapping = mappings.peek().getOrCreateMethodMapping(MethodSignature.of(obfuscatedName, oldSignature));
-                    return methodMapping.getDeobfuscatedName() + ";" + methodMapping.getDeobfuscatedDescriptor();
+                    if (isMethod) {
+                        MethodMapping methodMapping = mappings.peek().getOrCreateMethodMapping(MethodSignature.of(obfuscatedName, oldSignature));
+                        return methodMapping.getDeobfuscatedName() + ";" + methodMapping.getDeobfuscatedDescriptor();
+                    }
+
+                    FieldMapping fieldMapping = mappings.peek().getFieldMapping(obfuscatedName).orElseThrow(() -> new RuntimeException("Unable to find mapping for " + mappings.peek().getObfuscatedName() + "." + obfuscatedName));
+                    return fieldMapping.getDeobfuscatedName() + ";" + fieldMapping.getDeobfuscatedSignature().getType().get();
                 }
 
-                FieldMapping fieldMapping = mappings.peek().getFieldMapping(obfuscatedName).orElseThrow(() -> new RuntimeException("Unable to find mapping for " + mappings.peek().getObfuscatedName() + "." + obfuscatedName));
-                return fieldMapping.getDeobfuscatedName() + ";" + fieldMapping.getDeobfuscatedSignature().getType().get();
-            }
+                if (mappings.isEmpty()) {
+                    mappings.push(inputToOutput.getOrCreateClassMapping(original));
+                } else {
+                    while (!mappings.isEmpty() && !mappings.peek().hasInnerClassMapping(original)) {
+                        mappings.pop();
+                    }
 
-            if (mappings.isEmpty()) {
-                mappings.push(inputToOutput.getOrCreateClassMapping(original));
-            } else {
-                while (!mappings.peek().hasInnerClassMapping(original) && !mappings.isEmpty()) {
-                    mappings.pop();
+                    mappings.push(mappings.peek().getOrCreateInnerClassMapping(original));
                 }
 
-                mappings.push(mappings.peek().getOrCreateInnerClassMapping(original));
+                return mappings.peek().getDeobfuscatedName();
+            } catch (Exception e) {
+                System.err.println("Error finding mapping for " + original + " with type " + type);
+                return original;
             }
-
-            return mappings.peek().getDeobfuscatedName();
         });
 
         String name = transformed.getEnigmaClass().getMappedName();
