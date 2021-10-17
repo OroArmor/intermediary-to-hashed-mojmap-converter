@@ -43,6 +43,7 @@ public final class MavenFileDownloader {
 
             try (InputStream stream = url.openStream()) {
                 if (!Files.exists(output)) {
+                    Files.createDirectories(output.getParent());
                     Files.createFile(output);
                 }
                 Files.write(output, stream.readAllBytes());
@@ -50,6 +51,20 @@ public final class MavenFileDownloader {
                 continue;
             }
             return;
+        }
+
+        // check mavenLocal()
+        try {
+            Path local = Path.of(System.getProperty("user.home"), ".m2", "repository", mavenArtifact.getMavenArtifactPath(".jar"));
+            if (!Files.exists(output)) {
+                Files.createDirectories(output.getParent());
+                Files.createFile(output);
+            }
+
+            Files.write(output, Files.readAllBytes(local));
+            return;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         throw new RuntimeException("Unable to find artifact " + mavenArtifact);
