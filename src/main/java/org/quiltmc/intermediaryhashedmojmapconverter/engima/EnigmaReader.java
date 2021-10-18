@@ -3,10 +3,9 @@ package org.quiltmc.intermediaryhashedmojmapconverter.engima;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
@@ -78,7 +77,7 @@ public class EnigmaReader {
         String obfuscatedName;
         StringBuilder comment = new StringBuilder();
         String signature;
-        Map<Integer, String> parameters = new TreeMap<>();
+        List<EnigmaMethod.EngimaParameter> parameters = new ArrayList<>();
 
         String line = lines.get(currentLine.getAndIncrement());
         String[] tokens = WHITESPACE.split(line.trim());
@@ -89,17 +88,34 @@ public class EnigmaReader {
         name = tokens.length < 4 ? "" : tokens[2];
         signature = visited.substring(visited.indexOf(";") + 1);
 
+        String currentArgName = "";
+        StringBuilder currentArgComment = new StringBuilder();
+        int currentArgIndex = -1;
+
         for (; currentLine.get() < lines.size(); currentLine.getAndIncrement()) {
             line = lines.get(currentLine.get());
             tokens = WHITESPACE.split(line.trim());
             if (EnigmaMapping.Type.valueOf(tokens[0]) == EnigmaMapping.Type.COMMENT) {
-                addComment(comment, line);
+                if (currentArgIndex != -1) {
+                    addComment(currentArgComment, line);
+                } else {
+                    addComment(comment, line);
+                }
             } else if (EnigmaMapping.Type.valueOf(tokens[0]) == EnigmaMapping.Type.ARG){
-                parameters.put(Integer.parseInt(tokens[1]), tokens[2]);
+                if (currentArgIndex != -1) {
+                    parameters.add(new EnigmaMethod.EngimaParameter(currentArgIndex, currentArgName, currentArgComment.toString()));
+                    currentArgComment = new StringBuilder();
+                }
+                currentArgIndex = Integer.parseInt(tokens[1]);
+                currentArgName = tokens[2];
             } else {
                 currentLine.decrementAndGet();
                 break;
             }
+        }
+
+        if (currentArgIndex != -1) {
+            parameters.add(new EnigmaMethod.EngimaParameter(currentArgIndex, currentArgName, currentArgComment.toString()));
         }
 
         return new EnigmaMethod(obfuscatedName, name, comment.toString(), signature, parameters);

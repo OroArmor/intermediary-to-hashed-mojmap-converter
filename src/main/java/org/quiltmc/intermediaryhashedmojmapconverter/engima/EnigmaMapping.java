@@ -47,6 +47,15 @@ public abstract class EnigmaMapping implements Comparable<EnigmaMapping> {
         public String getSignature() {
             return signature;
         }
+
+        @Override
+        public int compareTo(@NotNull EnigmaMapping o) {
+            int res = super.compareTo(o);
+            if (o instanceof SignatureEnigmaMapping && res == 0) {
+                return this.signature.compareTo(((SignatureEnigmaMapping) o).signature);
+            }
+            return res;
+        }
     }
 
     public enum Type {
