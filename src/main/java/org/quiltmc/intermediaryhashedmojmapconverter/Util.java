@@ -5,7 +5,6 @@ import net.fabricmc.mapping.tree.TinyMappingFactory;
 import org.cadixdev.lorenz.MappingSet;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -18,7 +17,6 @@ import java.util.zip.ZipFile;
 
 public final class Util {
     public static final String CACHE_DIR = ".intermediaryhashedmojmapconverter";
-    private static final String GIT_PATH;
 
     public static Path checkAndCreateTinyCache(String artifact) throws IOException {
         MavenFileDownloader.MavenArtifact mavenArtifact = MavenFileDownloader.MavenArtifact.from(artifact);
@@ -76,7 +74,7 @@ public final class Util {
     public static String runGitCommand(Path directory, String... args) throws IOException {
         String[] command = new String[args.length + 1];
         System.arraycopy(args, 0, command, 1, args.length);
-        command[0] = GIT_PATH;
+        command[0] = "git";
         ProcessBuilder processBuilder = new ProcessBuilder(command).directory(directory.toFile()).redirectErrorStream(true);
         Process process = processBuilder.start();
 
@@ -89,25 +87,5 @@ public final class Util {
         }
 
         return out;
-    }
-
-    static {
-        String gitPath = null;
-        for (String dirname : System.getenv("PATH").split(File.pathSeparator)) {
-            File file = new File(dirname, "git.exe");
-            if (file.isFile() && file.canExecute()) {
-                gitPath = file.getAbsolutePath();
-            } else {
-                file = new File(dirname, "git");
-                if (file.isFile() && file.canExecute()) {
-                    gitPath = file.getAbsolutePath();
-                }
-            }
-        }
-
-        if (gitPath == null) {
-            throw new RuntimeException("No git executable found in PATH");
-        }
-        GIT_PATH = gitPath;
     }
 }
