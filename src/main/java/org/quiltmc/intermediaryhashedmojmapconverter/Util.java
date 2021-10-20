@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -42,6 +43,22 @@ public final class Util {
         return MappingSet.create().merge(officialToInput.reverse()).merge(officialToOutput);
     }
 
+    public static List<Path> walkDirectoryAndCollectFiles(Path directory) throws IOException {
+        return Files.walk(directory).filter(path -> !Files.isDirectory(path)).collect(Collectors.toList());
+    }
+
+    public static int getParentLineIndex(int lineIndex, List<String> lines) {
+        String line = lines.get(lineIndex);
+        for (int i = lineIndex - 1; i >= 0; --i) {
+            String l = lines.get(i);
+            if (l.lastIndexOf("\t") < line.lastIndexOf("\t")) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     public static String getUncommittedChanges(Path repository) throws IOException {
         return runGitCommand(repository, "diff-index", "HEAD", "--");
     }
@@ -56,7 +73,7 @@ public final class Util {
                 : headInfo[0];
     }
 
-    static String runGitCommand(Path directory, String... args) throws IOException {
+    public static String runGitCommand(Path directory, String... args) throws IOException {
         String[] command = new String[args.length + 1];
         System.arraycopy(args, 0, command, 1, args.length);
         command[0] = GIT_PATH;

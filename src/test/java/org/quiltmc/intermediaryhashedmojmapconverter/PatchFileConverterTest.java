@@ -1,6 +1,5 @@
 package org.quiltmc.intermediaryhashedmojmapconverter;
 
-import org.cadixdev.lorenz.MappingSet;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -22,7 +21,10 @@ public class PatchFileConverterTest {
     private static final Path PATCHES_DIR = RESOURCES_DIR.resolve("patches");
     private static final Path EXPECTED_PATCHES_DIR = RESOURCES_DIR.resolve("expected");
     private static final Path OUTPUTS_DIR;
-    private final MappingSet inputToOutput = Util.createInputToOutputMappings("net.fabricmc:intermediary:1.17.1", "intermediary", "org.quiltmc:hashed-mojmap:1.17.1-20210916.004720-4", "hashed");
+    private static final String INPUT_ARTIFACT = "net.fabricmc:intermediary:1.17.1";
+    private static final String INPUT_NAMESPACE = "intermediary";
+    private static final String OUTPUT_ARTIFACT = "org.quiltmc:hashed-mojmap:1.17.1-20210916.004720-4";
+    private static final String OUTPUT_NAMESPACE = "hashed";
 
     private static String inputRepoHead;
 
@@ -38,17 +40,16 @@ public class PatchFileConverterTest {
         OUTPUTS_DIR = outputsDir;
     }
 
-    public PatchFileConverterTest() throws IOException {
-    }
-
     public static List<Arguments> provideConvertPatchFileArguments() throws IOException {
-        return Files.walk(PATCHES_DIR).filter(path -> !Files.isDirectory(path)).map(path -> Arguments.of(path, PATCHES_DIR.relativize(path))).collect(Collectors.toList());
+        return Util.walkDirectoryAndCollectFiles(PATCHES_DIR).stream().map(path -> Arguments.of(path, PATCHES_DIR.relativize(path))).collect(Collectors.toList());
     }
 
     @BeforeAll
     public static void prepare() throws IOException {
         assertTrue(Files.exists(INPUT_REPO_PATH), "The input repository " + INPUT_REPO_PATH + " does not exist");
         inputRepoHead = Util.getRepoHead(INPUT_REPO_PATH);
+
+        PatchFileConverter.setup(Util.createInputToOutputMappings(INPUT_ARTIFACT, INPUT_NAMESPACE, OUTPUT_ARTIFACT, OUTPUT_NAMESPACE), INPUT_REPO_PATH, TEST_MAPPINGS_PATH);
     }
 
     @ParameterizedTest(name = "{1}")
@@ -58,7 +59,7 @@ public class PatchFileConverterTest {
         assertTrue(Files.exists(expectedPatchPath) && !Files.isDirectory(expectedPatchPath), "Expected file " + relative + " does not exist");
 
         Path outputPath = OUTPUTS_DIR.resolve(relative);
-        PatchFileConverter.convertPatchFile(path, outputPath, inputToOutput, INPUT_REPO_PATH, TEST_MAPPINGS_PATH);
+        new PatchFileConverter(path, outputPath).convert();
         assertTrue(Files.exists(outputPath) && !Files.isDirectory(outputPath), "Output file " + outputPath + " does not exist!");
 
         List<String> expectedLines = Files.readAllLines(expectedPatchPath);
