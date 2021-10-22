@@ -22,6 +22,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -31,6 +33,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.ToIntFunction;
+import java.util.stream.Collectors;
 
 public class PatchFileConverter {
     private static MappingSet inputToOutput;
@@ -225,6 +229,73 @@ public class PatchFileConverter {
 
                 // convertedDiffLinesToLineNumber.add(new Pair<>(remappedDiffLine, lineNumber));
             }
+
+            // Order by line number
+            convertedDiffLinesToLineNumber.sort(Comparator.comparingInt((ToIntFunction<Pair<DiffLine, Integer>>) Pair::right).thenComparing(p -> p.left().getType()));
+
+            // Separate by blocks and add context
+            List<DiffBlock> blocks = new ArrayList<>();
+            Deque<Pair<DiffLine, Integer>> blockEntriesStack = new ArrayDeque<>();
+            int contextLines = 3; // TODO: Detect from patch file
+            int destLineOffset = 0;
+            for (int i = 0; i < convertedDiffLinesToLineNumber.size(); ++i) {
+                Pair<DiffLine, Integer> pair = convertedDiffLinesToLineNumber.get(i);
+                DiffLine diffLine = pair.left();
+                DiffLine.LineType lineType = diffLine.getType();
+                Integer lineNumber = pair.right();
+
+                List<String> allLines = lineType == DiffLine.LineType.REMOVED ? inputFileLines : patchedInputFileLines;
+                boolean hasPrev = i > 0;
+                Pair<DiffLine, Integer> prev = hasPrev ? convertedDiffLinesToLineNumber.get(i - 1) : null;
+
+                boolean hasContextBefore = lineNumber > 1 && (!hasPrev || lineNumber > prev.right() + 1);
+                if (hasContextBefore) {
+                    int contextStartLine = Math.max(lineNumber - contextLines, hasPrev ? prev.right() + 1 : 1);
+                    for (int j = contextStartLine; j < lineNumber; ++j) {
+                        DiffLine contextLine = new DiffLine(allLines.get(j - 1), DiffLine.LineType.UNCHANGED);
+                        blockEntriesStack.push(Pair.of(contextLine, j));
+                    }
+                }
+
+                blockEntriesStack.push(pair);
+
+                boolean hasNext = i < convertedDiffLinesToLineNumber.size() - 1;
+                Pair<DiffLine, Integer> next = hasNext ? convertedDiffLinesToLineNumber.get(i + 1) : null;
+
+                boolean hasContextAfter = lineNumber < allLines.size() && (!hasNext || lineNumber < next.right() - 1);
+                if (hasContextAfter) {
+                    int contextEndLine = Math.min(lineNumber + contextLines, hasNext ? next.right() - 1 : allLines.size());
+                    if (hasNext && next.right() - lineNumber < contextLines * 2) {
+                        contextEndLine = Math.max(next.right() - contextLines, lineNumber + 1) - 1;
+                    }
+
+                    for (int j = lineNumber + 1; j <= contextEndLine; ++j) {
+                        DiffLine contextLine = new DiffLine(allLines.get(j - 1), DiffLine.LineType.UNCHANGED);
+                        blockEntriesStack.push(Pair.of(contextLine, j));
+                    }
+                }
+
+                int distanceToNext = hasNext ? next.right() - 1 - lineNumber : contextLines * 2 + 1;
+                if (distanceToNext > contextLines * 2) {
+                    List<Pair<DiffLine, Integer>> sourceLines = blockEntriesStack.stream().filter(p -> p.left().getType().increasesSourceLineNumber()).collect(Collectors.toList());
+                    List<Pair<DiffLine, Integer>> destLines = blockEntriesStack.stream().filter(p -> p.left().getType().increasesDestLineNumber()).collect(Collectors.toList());
+                    int sourceLine = sourceLines.get(sourceLines.size() - 1).right();
+                    int sourceSize = sourceLines.size();
+                    int destLine = destLines.get(destLines.size() - 1).right();
+                    int destSize = destLines.size();
+
+                    destLineOffset += destSize - sourceSize;
+                    destLine += destLineOffset;
+
+                    List<DiffLine> diffLines = blockEntriesStack.stream().map(Pair::left).collect(Collectors.toList());
+                    Collections.reverse(diffLines);
+                    DiffBlock block = new DiffBlock(sourceLine, sourceSize, destLine, destSize, diffLines);
+                    blockEntriesStack.clear();
+                    blocks.add(block);
+                }
+            }
+
+            convertedDiffs.add(new Diff(diff.getFrom(), diff.getTo(), blocks, diff.getInfo()));
         }
 
         Patch convertedPatch = new Patch(patch.getHeader(), convertedDiffs, patch.getFooter());
