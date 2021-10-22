@@ -140,7 +140,8 @@ public class PatchFileConverter {
             Map<Pair<String, String>, Pair<EnigmaMapping.Type, String>> patchedInputFileMappingsRemapInfo = new HashMap<>();
             List<String> patchedInputFileLines = Patch.applyDiff(inputFileLines, diff);
             mappings.clear();
-            EnigmaReader.readLines(patchedInputFileLines, (type, original, signature, isMethod) -> remapObfuscatedStoringRemapInfo(type, original, signature, isMethod, mappings, patchedInputFileMappingsRemapInfo));
+            EnigmaFile patchedRemappedInputFileEnigma = EnigmaReader.readLines(patchedInputFileLines, (type, original, signature, isMethod) -> remapObfuscatedStoringRemapInfo(type, original, signature, isMethod, mappings, patchedInputFileMappingsRemapInfo));
+            List<String> patchedRemappedInputFileLines = List.of(patchedRemappedInputFileEnigma.toString().split("\n"));
 
             // Remap changes
             Map<Pair<DiffLine, Integer>, DiffLine> remappedDiffLinesByOriginalWithLineNumber = new LinkedHashMap<>();
@@ -244,7 +245,7 @@ public class PatchFileConverter {
                 DiffLine.LineType lineType = diffLine.getType();
                 Integer lineNumber = pair.right();
 
-                List<String> allLines = lineType == DiffLine.LineType.REMOVED ? inputFileLines : patchedInputFileLines;
+                List<String> allLines = lineType == DiffLine.LineType.REMOVED ? outputFileLines : patchedRemappedInputFileLines;
                 boolean hasPrev = i > 0;
                 Pair<DiffLine, Integer> prev = hasPrev ? convertedDiffLinesToLineNumber.get(i - 1) : null;
 
@@ -281,11 +282,10 @@ public class PatchFileConverter {
                     List<Pair<DiffLine, Integer>> destLines = blockEntriesStack.stream().filter(p -> p.left().getType().increasesDestLineNumber()).collect(Collectors.toList());
                     int sourceLine = sourceLines.get(sourceLines.size() - 1).right();
                     int sourceSize = sourceLines.size();
-                    int destLine = destLines.get(destLines.size() - 1).right();
+                    int destLine = destLines.get(destLines.size() - 1).right() + destLineOffset;
                     int destSize = destLines.size();
 
                     destLineOffset += destSize - sourceSize;
-                    destLine += destLineOffset;
 
                     List<DiffLine> diffLines = blockEntriesStack.stream().map(Pair::left).collect(Collectors.toList());
                     Collections.reverse(diffLines);
