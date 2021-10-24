@@ -12,14 +12,14 @@ public class IntermediaryToHashedMojmapConverterTest {
         Path inputFile = Path.of("C:\\Users\\elior\\git-projects\\quilt-mappings\\mappings");
 
         if (Files.exists(inputFile)) {
-			Path outputDirectory = Path.of("test_output");
+			Path outputDirectory = Path.of("C:\\Users\\elior\\git-projects\\quilt-mappings\\mappings");
 
 			IntermediaryToHashedMojmapConverter.main(new String[]{
 					inputFile.toAbsolutePath().toString(),
-					"org.quiltmc:hashed:21w41a-SNAPSHOT",
+					"org.quiltmc:hashed-mojmap:1.17.1-SNAPSHOT",
 					"hashed",
 					outputDirectory.toAbsolutePath().toString(),
-					"org.quiltmc:hashed:21w41a",
+					"org.quiltmc:hashed:1.17.1-SNAPSHOT",
 					"hashed"
 			});
 		}
