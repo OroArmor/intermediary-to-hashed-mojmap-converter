@@ -82,7 +82,7 @@ public class EnigmaReader {
         String line = lines.get(currentLine.getAndIncrement());
         String[] tokens = WHITESPACE.split(line.trim());
 
-        String visited = visitor.visit(EnigmaMapping.Type.FIELD, tokens[1] + ";" + (tokens.length < 4 ? tokens[2] : tokens[3]), true, true);
+        String visited = visitor.visit(EnigmaMapping.Type.METHOD, tokens[1] + ";" + (tokens.length < 4 ? tokens[2] : tokens[3]), true, true);
 
         obfuscatedName = visited.substring(0, visited.indexOf(";"));
         name = tokens.length < 4 ? "" : tokens[2];

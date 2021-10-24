@@ -8,8 +8,11 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -43,21 +46,36 @@ public class IntermediaryToHashedMojmapConverter {
 
         MappingSet inputToOutput = MappingSet.create().merge(officialToInput.reverse()).merge(officialToOutput);
 
-        ExecutorService executor = Executors.newFixedThreadPool(8);
+        ExecutorService executor = Executors.newFixedThreadPool(32);
+
+        Set<Path> inProgress = new HashSet<>();
 
         Files.walkFileTree(inputPath, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                executor.submit(() -> {
+                inProgress.add(file);
+                executor.execute(() -> {
                     try {
                         remapAndOutputFile(file, outputPath, inputToOutput);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                    inProgress.remove(file);
                 });
                 return super.visitFile(file, attrs);
             }
         });
+
+
+        try {
+            boolean successful = executor.awaitTermination(100, TimeUnit.SECONDS);
+            if (!successful) {
+                System.err.println("Executor failed to stop.");
+                inProgress.forEach(System.out::println);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private static void remapAndOutputFile(Path inputPath, Path outputPath, MappingSet inputToOutput) throws IOException {
@@ -90,7 +108,7 @@ public class IntermediaryToHashedMojmapConverter {
 
                 return mappings.peek().getDeobfuscatedName();
             } catch (Exception e) {
-                System.err.println("Error finding mapping for " + original + " with type " + type);
+                System.err.println("Error finding mapping for " + original + " with type " + type + " in file " + inputPath);
                 return original;
             }
         });
