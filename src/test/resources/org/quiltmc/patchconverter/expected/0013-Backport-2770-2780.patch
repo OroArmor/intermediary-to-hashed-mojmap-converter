@@ -1,0 +1,103 @@
+From 4c99e6213720479868d692d9c47f7ccfe44c0e21 Mon Sep 17 00:00:00 2001
+From: Juuxel <6596629+Juuxel@users.noreply.github.com>
+Date: Fri, 22 Oct 2021 13:30:30 +0300
+Subject: [PATCH] Backport #2770 (#2780)
+
+---
+ ...yProperties.mapping => DimensionEffects.mapping} |  2 +-
+ .../net/minecraft/client/world/ClientWorld.mapping  |  4 ++--
+ .../minecraft/world/dimension/DimensionType.mapping | 13 ++++++++-----
+ 3 files changed, 11 insertions(+), 8 deletions(-)
+ rename mappings/net/minecraft/client/render/{SkyProperties.mapping => DimensionEffects.mapping} (96%)
+
+diff --git a/mappings/net/minecraft/client/render/SkyProperties.mapping b/mappings/net/minecraft/client/render/DimensionEffects.mapping
+similarity index 96%
+rename from mappings/net/minecraft/client/render/SkyProperties.mapping
+rename to mappings/net/minecraft/client/render/DimensionEffects.mapping
+index 6afd5172f2..14a60a16c4 100644
+--- a/mappings/net/minecraft/client/render/SkyProperties.mapping
++++ b/mappings/net/minecraft/client/render/DimensionEffects.mapping
+@@ -1,4 +1,4 @@
+-CLASS net/minecraft/unmapped/C_rylmqlxbnet/minecraft/client/render/SkyProperties
++CLASS net/minecraft/unmapped/C_rylmqlxbnet/minecraft/client/render/DimensionEffects
+ 	FIELD f_ammcwisa skyType Lnet/minecraft/unmapped/C_rylmqlxb$C_nlsgqafy;
+ 	FIELD f_bwcyscuu alternateSkyColor Z
+ 	FIELD f_caziatmu brightenLighting Z
+diff --git a/mappings/net/minecraft/client/world/ClientWorld.mapping b/mappings/net/minecraft/client/world/ClientWorld.mapping
+index 439e237037..3971ef4b76 100644
+--- a/mappings/net/minecraft/client/world/ClientWorld.mapping
++++ b/mappings/net/minecraft/client/world/ClientWorld.mapping
+@@ -8,7 +8,7 @@
+ 	FIELD f_ryimnszw entityList Lnet/minecraft/unmapped/C_uthmydtr;
+ 	FIELD f_vbztbdjr chunkManager Lnet/minecraft/unmapped/C_vubfebxr;
+ 	FIELD f_wiofcjxh players Ljava/util/List;
+-	FIELD f_ykafvamn skyProperties Lnet/minecraft/unmapped/C_rylmqlxb;
++	FIELD f_ykafvamn dimensionEffects Lnet/minecraft/unmapped/C_rylmqlxb;
+ 	FIELD f_yogfpijj netHandler Lnet/minecraft/unmapped/C_ivxrfoun;
+ 	FIELD f_yydqdrsx worldRenderer Lnet/minecraft/unmapped/C_xhbakkfs;
+ 	FIELD f_zgxfuuiv PARTICLE_Y_OFFSET D
+@@ -102,7 +102,7 @@
+ 		ARG 4 volume
+ 		ARG 5 pitch
+ 		ARG 6 useDistance
+-	METHOD m_uzmymptb getSkyProperties ()Lnet/minecraft/unmapped/C_rylmqlxb;
++	METHOD m_uzmymptb getDimensionEffects ()Lnet/minecraft/unmapped/C_rylmqlxb;
+ 	METHOD m_voynmivp addParticle (Lnet/minecraft/unmapped/C_kkdaznyh;Lnet/minecraft/unmapped/C_pmeibtxt;Lnet/minecraft/unmapped/C_tchocuqn;Z)V
+ 		ARG 1 pos
+ 		ARG 2 state
+diff --git a/mappings/net/minecraft/world/dimension/DimensionType.mapping b/mappings/net/minecraft/world/dimension/DimensionType.mapping
+index 691e7d8943..4b9e163741 100644
+--- a/mappings/net/minecraft/world/dimension/DimensionType.mapping
++++ b/mappings/net/minecraft/world/dimension/DimensionType.mapping
+@@ -6,7 +6,7 @@
+ 	FIELD f_egoghifm brightnessByLightLevel [F
+ 	FIELD f_ejarfjwx OVERWORLD_CAVES Lnet/minecraft/unmapped/C_fccnjixo;
+ 	FIELD f_eymqqrtk hasCeiling Z
+-	FIELD f_fspqreow skyProperties Lnet/minecraft/unmapped/C_acfwypcn;
++	FIELD f_fspqreow effects Lnet/minecraft/unmapped/C_acfwypcn;
+ 	FIELD f_hdbvcecb bedWorks Z
+ 	FIELD f_hdommlcp piglinSafe Z
+ 	FIELD f_jvpfdkoa biomeAccessType Lnet/minecraft/unmapped/C_slbwflfq;
+@@ -51,7 +51,7 @@
+ 		ARG 13 height
+ 		ARG 14 logicalHeight
+ 		ARG 15 infiniburn
+-		ARG 16 skyProperties
++		ARG 16 effects
+ 		ARG 17 ambientLight
+ 	METHOD <init> (Ljava/util/OptionalLong;ZZZZDZZZZZIIILnet/minecraft/unmapped/C_slbwflfq;Lnet/minecraft/unmapped/C_acfwypcn;Lnet/minecraft/unmapped/C_acfwypcn;F)V
+ 		ARG 1 fixedTime
+@@ -70,7 +70,7 @@
+ 		ARG 15 logicalHeight
+ 		ARG 16 biomeAccessType
+ 		ARG 17 infiniburn
+-		ARG 18 skyProperties
++		ARG 18 effects
+ 		ARG 19 ambientLight
+ 	METHOD m_aikiuqog addRegistryDefaults (Lnet/minecraft/unmapped/C_qdzvmxqw$C_fesqzelo;)Lnet/minecraft/unmapped/C_qdzvmxqw$C_fesqzelo;
+ 		ARG 0 registryManager
+@@ -88,7 +88,10 @@
+ 		ARG 1 time
+ 			COMMENT the time to calculate the index from
+ 	METHOD m_edqsmbvt getInfiniburnBlocks ()Lnet/minecraft/unmapped/C_vxhkekom;
+-	METHOD m_ehzumttf getSkyProperties ()Lnet/minecraft/unmapped/C_acfwypcn;
++	METHOD m_ehzumttf getEffects ()Lnet/minecraft/unmapped/C_acfwypcn;
++		COMMENT {@return the ID of this dimension's {@linkplain net.minecraft.client.render.DimensionEffects effects}}
++		COMMENT
++		COMMENT @see net.minecraft.client.render.DimensionEffects#byDimensionType(DimensionType)
+ 	METHOD m_ftlzvviq isBedWorking ()Z
+ 	METHOD m_ggdwfjcf hasRaids ()Z
+ 	METHOD m_ijkfhwfh getSaveDirectory (Lnet/minecraft/unmapped/C_hcaelhhx;Ljava/io/File;)Ljava/io/File;
+@@ -144,7 +147,7 @@
+ 		ARG 14 logicalHeight
+ 		ARG 15 biomeAccessType
+ 		ARG 16 infiniburn
+-		ARG 17 skyProperties
++		ARG 17 effects
+ 		ARG 18 ambientLight
+ 	METHOD m_pzvcocfn getSuffix ()Ljava/lang/String;
+ 	METHOD m_quwrrozv isPiglinSafe ()Z
+
+-- 
+2.32.0.windows.2
+

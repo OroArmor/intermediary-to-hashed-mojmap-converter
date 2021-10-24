@@ -1,0 +1,26 @@
+From 587d189c77701605844145b260b521907c8e2edc Mon Sep 17 00:00:00 2001
+From: NotSomeBot <43829743+mariusdkm@users.noreply.github.com>
+Date: Wed, 20 Oct 2021 22:44:20 +0200
+Subject: [PATCH] name function method_26318 applyMovementInput (#2773)
+
+---
+ mappings/net/minecraft/entity/LivingEntity.mapping | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/mappings/net/minecraft/entity/LivingEntity.mapping b/mappings/net/minecraft/entity/LivingEntity.mapping
+index 4840cf485b..b5685bac10 100644
+--- a/mappings/net/minecraft/entity/LivingEntity.mapping
++++ b/mappings/net/minecraft/entity/LivingEntity.mapping
+@@ -320,6 +320,9 @@
+ 	METHOD m_nlxtjorw getLootContextBuilder (ZLnet/minecraft/unmapped/C_vypkfxbs;)Lnet/minecraft/unmapped/C_hgpkykai$C_bvqtlydx;
+ 		ARG 1 causedByPlayer
+ 		ARG 2 source
++	METHOD m_nopkqaxh applyMovementInput (Lnet/minecraft/unmapped/C_xxfpupgv;F)Lnet/minecraft/unmapped/C_xxfpupgv;
++		ARG 1 movementInput
++		ARG 2 slipperiness
+ 	METHOD m_nsjaikro getActiveStatusEffects ()Ljava/util/Map;
+ 	METHOD m_nzcwduyf shouldRemoveSoulSpeedBoost (Lnet/minecraft/unmapped/C_pmeibtxt;)Z
+ 		ARG 1 landingState
+-- 
+2.32.0.windows.2
+

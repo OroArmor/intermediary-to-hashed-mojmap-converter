@@ -1,0 +1,102 @@
+From 4c99e6213720479868d692d9c47f7ccfe44c0e21 Mon Sep 17 00:00:00 2001
+From: Juuxel <6596629+Juuxel@users.noreply.github.com>
+Date: Fri, 22 Oct 2021 13:30:30 +0300
+Subject: [PATCH] Backport #2770 (#2780)
+
+---
+ ...yProperties.mapping => DimensionEffects.mapping} |  2 +-
+ .../net/minecraft/client/world/ClientWorld.mapping  |  4 ++--
+ .../minecraft/world/dimension/DimensionType.mapping | 13 ++++++++-----
+ 3 files changed, 11 insertions(+), 8 deletions(-)
+ rename mappings/net/minecraft/client/render/{SkyProperties.mapping => DimensionEffects.mapping} (96%)
+
+diff --git a/mappings/net/minecraft/client/render/SkyProperties.mapping b/mappings/net/minecraft/client/render/DimensionEffects.mapping
+similarity index 96%
+rename from mappings/net/minecraft/client/render/SkyProperties.mapping
+rename to mappings/net/minecraft/client/render/DimensionEffects.mapping
+index 6afd5172f2..14a60a16c4 100644
+--- a/mappings/net/minecraft/client/render/SkyProperties.mapping
++++ b/mappings/net/minecraft/client/render/DimensionEffects.mapping
+@@ -1,4 +1,4 @@
+-CLASS net/minecraft/class_5294 net/minecraft/client/render/SkyProperties
++CLASS net/minecraft/class_5294 net/minecraft/client/render/DimensionEffects
+ 	FIELD field_24609 BY_IDENTIFIER Lit/unimi/dsi/fastutil/objects/Object2ObjectMap;
+ 	FIELD field_24610 rgba [F
+ 	FIELD field_24611 cloudsHeight F
+diff --git a/mappings/net/minecraft/client/world/ClientWorld.mapping b/mappings/net/minecraft/client/world/ClientWorld.mapping
+index 439e237037..3971ef4b76 100644
+--- a/mappings/net/minecraft/client/world/ClientWorld.mapping
++++ b/mappings/net/minecraft/client/world/ClientWorld.mapping
+@@ -6,7 +6,7 @@ CLASS net/minecraft/class_638 net/minecraft/client/world/ClientWorld
+ 	FIELD field_21527 colorCache Lit/unimi/dsi/fastutil/objects/Object2ObjectArrayMap;
+ 	FIELD field_24430 clientWorldProperties Lnet/minecraft/class_638$class_5271;
+ 	FIELD field_24605 chunkManager Lnet/minecraft/class_631;
+-	FIELD field_24606 skyProperties Lnet/minecraft/class_5294;
++	FIELD field_24606 dimensionEffects Lnet/minecraft/class_5294;
+ 	FIELD field_27733 entityList Lnet/minecraft/class_5574;
+ 	FIELD field_27734 entityManager Lnet/minecraft/class_5582;
+ 	FIELD field_32641 PARTICLE_Y_OFFSET D
+@@ -61,7 +61,7 @@ CLASS net/minecraft/class_638 net/minecraft/client/world/ClientWorld
+ 		ARG 1 pos
+ 		ARG 2 angle
+ 	METHOD method_27874 getSpawnPos ()Lnet/minecraft/class_2338;
+-	METHOD method_28103 getSkyProperties ()Lnet/minecraft/class_5294;
++	METHOD method_28103 getDimensionEffects ()Lnet/minecraft/class_5294;
+ 	METHOD method_29089 setTime (J)V
+ 		ARG 1 time
+ 	METHOD method_29090 tickTime ()V
+diff --git a/mappings/net/minecraft/world/dimension/DimensionType.mapping b/mappings/net/minecraft/world/dimension/DimensionType.mapping
+index 691e7d8943..4b9e163741 100644
+--- a/mappings/net/minecraft/world/dimension/DimensionType.mapping
++++ b/mappings/net/minecraft/world/dimension/DimensionType.mapping
+@@ -26,7 +26,7 @@ CLASS net/minecraft/class_2874 net/minecraft/world/dimension/DimensionType
+ 	FIELD field_25616 minimumY I
+ 	FIELD field_25617 infiniburn Lnet/minecraft/class_2960;
+ 	FIELD field_26706 coordinateScale D
+-	FIELD field_26751 skyProperties Lnet/minecraft/class_2960;
++	FIELD field_26751 effects Lnet/minecraft/class_2960;
+ 	FIELD field_26752 OVERWORLD_ID Lnet/minecraft/class_2960;
+ 	FIELD field_26753 THE_NETHER_ID Lnet/minecraft/class_2960;
+ 	FIELD field_26754 THE_END_ID Lnet/minecraft/class_2960;
+@@ -51,7 +51,7 @@ CLASS net/minecraft/class_2874 net/minecraft/world/dimension/DimensionType
+ 		ARG 13 height
+ 		ARG 14 logicalHeight
+ 		ARG 15 infiniburn
+-		ARG 16 skyProperties
++		ARG 16 effects
+ 		ARG 17 ambientLight
+ 	METHOD <init> (Ljava/util/OptionalLong;ZZZZDZZZZZIIILnet/minecraft/class_4545;Lnet/minecraft/class_2960;Lnet/minecraft/class_2960;F)V
+ 		ARG 1 fixedTime
+@@ -70,7 +70,7 @@ CLASS net/minecraft/class_2874 net/minecraft/world/dimension/DimensionType
+ 		ARG 15 logicalHeight
+ 		ARG 16 biomeAccessType
+ 		ARG 17 infiniburn
+-		ARG 18 skyProperties
++		ARG 18 effects
+ 		ARG 19 ambientLight
+ 	METHOD method_12488 getSaveDirectory (Lnet/minecraft/class_5321;Ljava/io/File;)Ljava/io/File;
+ 		ARG 0 worldRef
+@@ -126,7 +126,10 @@ CLASS net/minecraft/class_2874 net/minecraft/world/dimension/DimensionType
+ 		ARG 0 fromDimension
+ 		ARG 1 toDimension
+ 	METHOD method_31110 getCoordinateScale ()D
+-	METHOD method_31181 getSkyProperties ()Lnet/minecraft/class_2960;
++	METHOD method_31181 getEffects ()Lnet/minecraft/class_2960;
++		COMMENT {@return the ID of this dimension's {@linkplain net.minecraft.client.render.DimensionEffects effects}}
++		COMMENT
++		COMMENT @see net.minecraft.client.render.DimensionEffects#byDimensionType(DimensionType)
+ 	METHOD method_32922 create (Ljava/util/OptionalLong;ZZZZDZZZZZIIILnet/minecraft/class_4545;Lnet/minecraft/class_2960;Lnet/minecraft/class_2960;F)Lnet/minecraft/class_2874;
+ 		ARG 0 fixedTime
+ 		ARG 1 hasSkylight
+@@ -144,7 +147,7 @@ CLASS net/minecraft/class_2874 net/minecraft/world/dimension/DimensionType
+ 		ARG 14 logicalHeight
+ 		ARG 15 biomeAccessType
+ 		ARG 16 infiniburn
+-		ARG 17 skyProperties
++		ARG 17 effects
+ 		ARG 18 ambientLight
+ 	METHOD method_32923 checkHeight (Lnet/minecraft/class_2874;)Lcom/mojang/serialization/DataResult;
+ 		ARG 0 type
+-- 
+2.32.0.windows.2
+
