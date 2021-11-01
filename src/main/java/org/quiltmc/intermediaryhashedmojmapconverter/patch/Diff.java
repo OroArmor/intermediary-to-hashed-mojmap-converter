@@ -21,10 +21,10 @@ public class Diff {
             out.append(info);
             out.append("\n");
         }
-        out.append("--- a/");
-        out.append(this.getFrom());
-        out.append("\n+++ b/");
-        out.append(this.getTo());
+        out.append("--- ");
+        out.append(this.getFrom().startsWith("/") ? this.getFrom() : "a/" + this.getFrom());
+        out.append("\n+++ ");
+        out.append(this.getTo().startsWith("/") ? this.getTo() : "b/" + this.getTo());
         out.append("\n");
         for (DiffBlock block : this.getBlocks()) {
             out.append(block.export());

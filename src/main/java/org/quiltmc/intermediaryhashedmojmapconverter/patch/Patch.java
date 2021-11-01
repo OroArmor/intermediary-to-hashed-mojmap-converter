@@ -142,6 +142,10 @@ public class Patch {
     }
 
     private static String skipPathPrefix(String input) {
+        if (input.startsWith("/")) {
+            return input;
+        }
+
         Path path = Path.of(input);
         StringBuilder output = new StringBuilder();
         for (int i = 1; i < path.getNameCount(); ++i) {
