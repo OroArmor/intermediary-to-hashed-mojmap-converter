@@ -1,0 +1,105 @@
+From 2575997c1d3efb9c3f790c21124276125e9941b7 Mon Sep 17 00:00:00 2001
+From: frqnny <45723631+frqnny@users.noreply.github.com>
+Date: Tue, 14 Sep 2021 16:22:32 -0400
+Subject: [PATCH] FollowTargetGoal -> ActiveTargetGoal (#2561)
+
+* FollowTargetGoal -> TrackClosestTargetGoal
+
+* update with some child class renames too
+
+* Update mappings
+
+Co-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+---
+ .../goal/{FollowTargetGoal.mapping => ActiveTargetGoal.mapping} | 2 +-
+ ...lowTargetGoal.mapping => ToggleableActiveTargetGoal.mapping} | 2 +-
+ ...argetIfTamedGoal.mapping => UntamedActiveTargetGoal.mapping} | 2 +-
+ mappings/net/minecraft/entity/mob/SpiderEntity.mapping          | 2 +-
+ mappings/net/minecraft/entity/mob/VindicatorEntity.mapping      | 2 +-
+ mappings/net/minecraft/entity/passive/PolarBearEntity.mapping   | 2 +-
+ 6 files changed, 6 insertions(+), 6 deletions(-)
+ rename mappings/net/minecraft/entity/ai/goal/{FollowTargetGoal.mapping => ActiveTargetGoal.mapping} (92%)
+ rename mappings/net/minecraft/entity/ai/goal/{DisableableFollowTargetGoal.mapping => ToggleableActiveTargetGoal.mapping} (78%)
+ rename mappings/net/minecraft/entity/ai/goal/{FollowTargetIfTamedGoal.mapping => UntamedActiveTargetGoal.mapping} (73%)
+
+diff --git a/mappings/net/minecraft/entity/ai/goal/FollowTargetGoal.mapping b/mappings/net/minecraft/entity/ai/goal/ActiveTargetGoal.mapping
+similarity index 92%
+rename from mappings/net/minecraft/entity/ai/goal/FollowTargetGoal.mapping
+rename to mappings/net/minecraft/entity/ai/goal/ActiveTargetGoal.mapping
+index a26e76064e..d0c7691ae7 100644
+--- a/mappings/net/minecraft/entity/ai/goal/FollowTargetGoal.mapping
++++ b/mappings/net/minecraft/entity/ai/goal/ActiveTargetGoal.mapping
+@@ -1,4 +1,4 @@
+-CLASS net/minecraft/class_1400 net/minecraft/entity/ai/goal/FollowTargetGoal
++CLASS net/minecraft/class_1400 net/minecraft/entity/ai/goal/ActiveTargetGoal
+ 	FIELD field_6641 reciprocalChance I
+ 	FIELD field_6642 targetPredicate Lnet/minecraft/class_4051;
+ 	FIELD field_6643 targetClass Ljava/lang/Class;
+diff --git a/mappings/net/minecraft/entity/ai/goal/DisableableFollowTargetGoal.mapping b/mappings/net/minecraft/entity/ai/goal/ToggleableActiveTargetGoal.mapping
+similarity index 78%
+rename from mappings/net/minecraft/entity/ai/goal/DisableableFollowTargetGoal.mapping
+rename to mappings/net/minecraft/entity/ai/goal/ToggleableActiveTargetGoal.mapping
+index e75a4e1945..de153ce3f5 100644
+--- a/mappings/net/minecraft/entity/ai/goal/DisableableFollowTargetGoal.mapping
++++ b/mappings/net/minecraft/entity/ai/goal/ToggleableActiveTargetGoal.mapping
+@@ -1,4 +1,4 @@
+-CLASS net/minecraft/class_3760 net/minecraft/entity/ai/goal/DisableableFollowTargetGoal
++CLASS net/minecraft/class_3760 net/minecraft/entity/ai/goal/ToggleableActiveTargetGoal
+ 	FIELD field_17281 enabled Z
+ 	METHOD <init> (Lnet/minecraft/class_3763;Ljava/lang/Class;IZZLjava/util/function/Predicate;)V
+ 		ARG 1 actor
+diff --git a/mappings/net/minecraft/entity/ai/goal/FollowTargetIfTamedGoal.mapping b/mappings/net/minecraft/entity/ai/goal/UntamedActiveTargetGoal.mapping
+similarity index 73%
+rename from mappings/net/minecraft/entity/ai/goal/FollowTargetIfTamedGoal.mapping
+rename to mappings/net/minecraft/entity/ai/goal/UntamedActiveTargetGoal.mapping
+index 0d1d441690..56ae63ea0a 100644
+--- a/mappings/net/minecraft/entity/ai/goal/FollowTargetIfTamedGoal.mapping
++++ b/mappings/net/minecraft/entity/ai/goal/UntamedActiveTargetGoal.mapping
+@@ -1,4 +1,4 @@
+-CLASS net/minecraft/class_1404 net/minecraft/entity/ai/goal/FollowTargetIfTamedGoal
++CLASS net/minecraft/class_1404 net/minecraft/entity/ai/goal/UntamedActiveTargetGoal
+ 	FIELD field_6656 tameable Lnet/minecraft/class_1321;
+ 	METHOD <init> (Lnet/minecraft/class_1321;Ljava/lang/Class;ZLjava/util/function/Predicate;)V
+ 		ARG 1 tameable
+diff --git a/mappings/net/minecraft/entity/mob/SpiderEntity.mapping b/mappings/net/minecraft/entity/mob/SpiderEntity.mapping
+index e27e4596b9..a9942755a4 100644
+--- a/mappings/net/minecraft/entity/mob/SpiderEntity.mapping
++++ b/mappings/net/minecraft/entity/mob/SpiderEntity.mapping
+@@ -13,7 +13,7 @@ CLASS net/minecraft/class_1628 net/minecraft/entity/mob/SpiderEntity
+ 		FIELD field_7404 effect Lnet/minecraft/class_1291;
+ 		METHOD method_7168 setEffect (Ljava/util/Random;)V
+ 			ARG 1 random
+-	CLASS class_1631 FollowTargetGoal
++	CLASS class_1631 TargetGoal
+ 		METHOD <init> (Lnet/minecraft/class_1628;Ljava/lang/Class;)V
+ 			ARG 1 spider
+ 			ARG 2 targetEntityClass
+diff --git a/mappings/net/minecraft/entity/mob/VindicatorEntity.mapping b/mappings/net/minecraft/entity/mob/VindicatorEntity.mapping
+index 2d757dd460..e78fe19a53 100644
+--- a/mappings/net/minecraft/entity/mob/VindicatorEntity.mapping
++++ b/mappings/net/minecraft/entity/mob/VindicatorEntity.mapping
+@@ -5,7 +5,7 @@ CLASS net/minecraft/class_1632 net/minecraft/entity/mob/VindicatorEntity
+ 	METHOD method_20007 (Lnet/minecraft/class_1267;)Z
+ 		ARG 0 difficulty
+ 	METHOD method_26926 createVindicatorAttributes ()Lnet/minecraft/class_5132$class_5133;
+-	CLASS class_1633 FollowEntityGoal
++	CLASS class_1633 TargetGoal
+ 		METHOD <init> (Lnet/minecraft/class_1632;)V
+ 			ARG 1 vindicator
+ 	CLASS class_3761 BreakDoorGoal
+diff --git a/mappings/net/minecraft/entity/passive/PolarBearEntity.mapping b/mappings/net/minecraft/entity/passive/PolarBearEntity.mapping
+index 3495cf084c..a0b9b1aeb1 100644
+--- a/mappings/net/minecraft/entity/passive/PolarBearEntity.mapping
++++ b/mappings/net/minecraft/entity/passive/PolarBearEntity.mapping
+@@ -19,7 +19,7 @@ CLASS net/minecraft/class_1456 net/minecraft/entity/passive/PolarBearEntity
+ 	METHOD method_6602 playWarningSound ()V
+ 	METHOD method_6603 setWarning (Z)V
+ 		ARG 1 warning
+-	CLASS class_1457 FollowPlayersGoal
++	CLASS class_1457 ProtectBabiesGoal
+ 	CLASS class_1459 PolarBearRevengeGoal
+ 	CLASS class_1460 AttackGoal
+ 	CLASS class_1461 PolarBearEscapeDangerGoal
+-- 
+2.32.0.windows.2
+

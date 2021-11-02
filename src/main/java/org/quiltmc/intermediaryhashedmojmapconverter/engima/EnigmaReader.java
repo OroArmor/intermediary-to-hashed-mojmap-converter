@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import org.jetbrains.annotations.Nullable;
 
 public class EnigmaReader {
+    private static final ObfuscatedNameVisitor DEFAULT_VISITOR = (type, original, signature, isMethod) -> original;
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
     
     public static EnigmaFile readFile(Path path) throws IOException {
@@ -21,10 +22,24 @@ public class EnigmaReader {
 
     public static EnigmaFile readFile(Path path, @Nullable ObfuscatedNameVisitor visitor) throws IOException {
         if (visitor == null) {
-            visitor = (type, original, signature, isMethod) -> original;
+            visitor = DEFAULT_VISITOR;
         }
 
         List<String> lines = Files.readAllLines(path);
+
+        AtomicInteger currentLine = new AtomicInteger(0);
+
+        return new EnigmaFile(parseClass(lines, currentLine, visitor));
+    }
+
+    public static EnigmaFile readLines(List<String> lines) {
+        return readLines(lines, null);
+    }
+
+    public static EnigmaFile readLines(List<String> lines, @Nullable ObfuscatedNameVisitor visitor) {
+        if (visitor == null) {
+            visitor = DEFAULT_VISITOR;
+        }
 
         AtomicInteger currentLine = new AtomicInteger(0);
 
