@@ -5,39 +5,22 @@ import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.ClassMapping;
 import org.cadixdev.lorenz.model.FieldMapping;
 import org.cadixdev.lorenz.model.MethodMapping;
-import org.jetbrains.annotations.Nullable;
 import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaFile;
-import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaMapping;
 import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaReader;
 import org.quiltmc.intermediaryhashedmojmapconverter.patch.Diff;
-import org.quiltmc.intermediaryhashedmojmapconverter.patch.DiffBlock;
-import org.quiltmc.intermediaryhashedmojmapconverter.patch.DiffLine;
 import org.quiltmc.intermediaryhashedmojmapconverter.patch.Patch;
-import org.quiltmc.intermediaryhashedmojmapconverter.util.Pair;
-import org.quiltmc.intermediaryhashedmojmapconverter.util.Tree;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.function.ToIntFunction;
-import java.util.stream.Collectors;
 
 public class PatchFileConverter {
     public static void main(String[] args) throws IOException {
