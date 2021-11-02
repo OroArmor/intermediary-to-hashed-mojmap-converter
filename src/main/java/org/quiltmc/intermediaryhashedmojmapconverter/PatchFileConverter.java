@@ -137,37 +137,22 @@ public class PatchFileConverter {
     }
 
     private static EnigmaFile readAndRemapFile(Path file, MappingSet inputToOutput) throws IOException {
-        return readAndRemapFileLines(Files.readAllLines(file), inputToOutput);
+        Deque<ClassMapping<?, ?>> mappings = new ArrayDeque<>();
+        return EnigmaReader.readFile(file, (type, original, signature, isMethod) -> {
+            try {
+                return Util.remapObfuscated(type, original, signature, isMethod, inputToOutput, mappings);
+            } catch (Exception e) {
+                System.err.println("Error finding mapping for " + original + " with type " + type + " in file " + file);
+                return original;
+            }
+        });
     }
 
     private static EnigmaFile readAndRemapFileLines(List<String> lines, MappingSet inputToOutput) {
         Deque<ClassMapping<?, ?>> mappings = new ArrayDeque<>();
         return EnigmaReader.readLines(lines, (type, original, signature, isMethod) -> {
             try {
-                if (signature) {
-                    String obfuscatedName = original.substring(0, original.indexOf(";"));
-                    String oldSignature = original.substring(original.indexOf(";") + 1);
-
-                    if (isMethod) {
-                        MethodMapping methodMapping = mappings.peek().getOrCreateMethodMapping(MethodSignature.of(obfuscatedName, oldSignature));
-                        return methodMapping.getDeobfuscatedName() + ";" + methodMapping.getDeobfuscatedDescriptor();
-                    }
-
-                    FieldMapping fieldMapping = mappings.peek().getFieldMapping(obfuscatedName).orElseThrow(() -> new RuntimeException("Unable to find mapping for " + mappings.peek().getObfuscatedName() + "." + obfuscatedName));
-                    return fieldMapping.getDeobfuscatedName() + ";" + fieldMapping.getDeobfuscatedSignature().getType().get();
-                }
-
-                if (mappings.isEmpty()) {
-                    mappings.push(inputToOutput.getOrCreateClassMapping(original));
-                } else {
-                    while (!mappings.isEmpty() && !mappings.peek().hasInnerClassMapping(original)) {
-                        mappings.pop();
-                    }
-
-                    mappings.push(mappings.peek().getOrCreateInnerClassMapping(original));
-                }
-
-                return mappings.peek().getDeobfuscatedName();
+                return Util.remapObfuscated(type, original, signature, isMethod, inputToOutput, mappings);
             } catch (Exception e) {
                 System.err.println("Error finding mapping for " + original + " with type " + type);
                 return original;

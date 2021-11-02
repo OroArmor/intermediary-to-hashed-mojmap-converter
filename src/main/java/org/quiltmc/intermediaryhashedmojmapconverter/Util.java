@@ -2,7 +2,12 @@ package org.quiltmc.intermediaryhashedmojmapconverter;
 
 import net.fabricmc.lorenztiny.TinyMappingsReader;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
+import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
+import org.cadixdev.lorenz.model.ClassMapping;
+import org.cadixdev.lorenz.model.FieldMapping;
+import org.cadixdev.lorenz.model.MethodMapping;
+import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaMapping;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,6 +15,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -41,20 +47,35 @@ public final class Util {
         return MappingSet.create().merge(officialToInput.reverse()).merge(officialToOutput);
     }
 
-    public static List<Path> walkDirectoryAndCollectFiles(Path directory) throws IOException {
-        return Files.walk(directory).filter(path -> !Files.isDirectory(path)).collect(Collectors.toList());
-    }
+    public static String remapObfuscated(EnigmaMapping.Type type, String original, boolean signature, boolean isMethod, MappingSet inputToOutput, Deque<ClassMapping<?, ?>> mappings) {
+        if (signature) {
+            String obfuscatedName = original.substring(0, original.indexOf(";"));
+            String oldSignature = original.substring(original.indexOf(";") + 1);
 
-    public static int getParentLineIndex(int lineIndex, List<String> lines) {
-        String line = lines.get(lineIndex);
-        for (int i = lineIndex - 1; i >= 0; --i) {
-            String l = lines.get(i);
-            if (l.lastIndexOf("\t") < line.lastIndexOf("\t")) {
-                return i;
+            if (isMethod) {
+                MethodMapping methodMapping = mappings.peek().getOrCreateMethodMapping(MethodSignature.of(obfuscatedName, oldSignature));
+                return methodMapping.getDeobfuscatedName() + ";" + methodMapping.getDeobfuscatedDescriptor();
             }
+
+            FieldMapping fieldMapping = mappings.peek().getFieldMapping(obfuscatedName).orElseThrow(() -> new RuntimeException("Unable to find mapping for " + mappings.peek().getObfuscatedName() + "." + obfuscatedName));
+            return fieldMapping.getDeobfuscatedName() + ";" + fieldMapping.getDeobfuscatedSignature().getType().get();
         }
 
-        return -1;
+        if (mappings.isEmpty()) {
+            mappings.push(inputToOutput.getOrCreateClassMapping(original));
+        } else {
+            while (!mappings.isEmpty() && !mappings.peek().hasInnerClassMapping(original)) {
+                mappings.pop();
+            }
+
+            mappings.push(mappings.peek().getOrCreateInnerClassMapping(original));
+        }
+
+        return mappings.peek().getDeobfuscatedName();
+    }
+
+    public static List<Path> walkDirectoryAndCollectFiles(Path directory) throws IOException {
+        return Files.walk(directory).filter(path -> !Files.isDirectory(path)).collect(Collectors.toList());
     }
 
     public static String getUncommittedChanges(Path repository) throws IOException {
