@@ -11,8 +11,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class PatchFileConverter {
     public static void main(String[] args) throws IOException {
@@ -39,23 +47,69 @@ public class PatchFileConverter {
         // Get what HEAD is pointing to
         String inputRepoHead = Util.getRepoHead(inputRepo);
 
+        Map<Path, String> modifiedFiles = new HashMap<>();
+        List<Path> modifiedPaths = new ArrayList<>();
         List<Path> patchFiles = Util.walkDirectoryAndCollectFiles(patchesPath);
 
         for (Path patchFile : patchFiles) {
             try {
                 System.out.println("Converting " + patchFile);
-                PatchFileConverter.convertFile(patchFile, inputToOutput, inputRepo, outputPath);
+                PatchFileConverter.convertFile(patchFile, inputToOutput, inputRepo, outputPath, modifiedPaths, modifiedFiles);
             } catch (Throwable t) {
                 System.err.println("Failed to convert " + patchFile);
                 t.printStackTrace();
             }
         }
 
+        Set<Path> uniqueModifiedPaths = new HashSet<>();
+        Set<Path> duplicatedModifiedPaths = new HashSet<>();
+        for (Path modifiedPath : modifiedPaths) {
+            if (!uniqueModifiedPaths.contains(modifiedPath)) {
+                uniqueModifiedPaths.add(modifiedPath);
+            } else {
+                duplicatedModifiedPaths.add(modifiedPath);
+            }
+        }
+
+        if (!duplicatedModifiedPaths.isEmpty()) {
+            System.err.println("The following files were modified more than once. Only the last version will be kept");
+            for (Path modifiedPath : duplicatedModifiedPaths) {
+                System.err.println("\t" + modifiedPath);
+            }
+        }
+
+        System.out.println("Applying modified files");
+        ExecutorService executor = Executors.newFixedThreadPool(32);
+        Set<Path> remaining = new HashSet<>(uniqueModifiedPaths);
+
+        for (Path modifiedPath : uniqueModifiedPaths) {
+            executor.execute(() -> {
+                try {
+                    applyModifiedFile(outputPath, modifiedPath, modifiedFiles.get(modifiedPath));
+                    remaining.remove(modifiedPath);
+                } catch (Exception e) {
+                    System.err.println("Failed to apply modified file " + modifiedPath);
+                    e.printStackTrace();
+                }
+            });
+        }
+
+        try {
+            boolean successful = executor.awaitTermination(100, TimeUnit.SECONDS);
+            if (!successful) {
+                System.err.println("Executor failed to stop. " + remaining.size() + " file(s) remaining");
+                remaining.forEach(System.out::println);
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         // Reset the input repo to how it was before
         Util.runGitCommand(inputRepo, "checkout", inputRepoHead);
     }
 
-    public static void convertFile(Path patchFile, MappingSet inputToOutput, Path inputRepo, Path outputPath) throws IOException {
+    public static void convertFile(Path patchFile, MappingSet inputToOutput, Path inputRepo, Path outputPath, List<Path> modifiedPaths, Map<Path, String> modifiedFiles) throws IOException {
         Patch patch = Patch.read(patchFile);
 
         for (Diff diff : patch.getDiffs()) {
@@ -63,13 +117,16 @@ public class PatchFileConverter {
             boolean newFile = diff.getSrc().equals("/dev/null");
             boolean deletedFile = diff.getDst().equals("/dev/null");
 
+            Path srcPath = Path.of(diff.getSrc());
+            Path dstPath = Path.of(diff.getDst());
+
             if (newFile && deletedFile) {
                 throw new IllegalStateException("Patch file " + patchFile + " contains a diff pointing to a null file");
             } else if (deletedFile) {
-                // Delete the file
-                Files.deleteIfExists(outputPath.resolve(diff.getSrc()));
+                modifiedPaths.add(srcPath);
+                modifiedFiles.put(srcPath, null);
             } else if (newFile) {
-                Path inputFile = inputRepo.resolve(diff.getDst());
+                Path inputFile = inputRepo.resolve(dstPath);
 
                 // Checkout patch commit in the input repo
                 String fromLine = patch.getHeader().get(0);
@@ -80,12 +137,13 @@ public class PatchFileConverter {
                 }
 
                 EnigmaFile remappedFile = readAndRemapFile(inputFile, inputToOutput);
-                remappedFile.export(outputPath.resolve(diff.getDst()));
+                modifiedPaths.add(dstPath);
+                modifiedFiles.put(dstPath, remappedFile.toString());
             } else {
-                Path inputSrcFile = inputRepo.resolve(diff.getSrc());
-                Path outputSrcFile = outputPath.resolve(diff.getSrc());
+                Path inputSrcFile = inputRepo.resolve(srcPath);
+                Path outputSrcFile = outputPath.resolve(srcPath);
                 if (!Files.exists(outputSrcFile)) {
-                    System.err.println("File " + diff.getSrc() + " does not exist in the output repository");
+                    System.err.println("File " + srcPath + " does not exist in the output repository");
                     continue;
                 }
 
@@ -100,18 +158,19 @@ public class PatchFileConverter {
                 // Check the input and output files have the same content
                 EnigmaFile remappedInputSrcEnigmaFile = readAndRemapFile(inputSrcFile, inputToOutput);
                 if (!Files.readString(outputSrcFile).replace("\r\n", "\n").equals(remappedInputSrcEnigmaFile.toString())) {
-                    System.out.println("WARNING: The output repository file " + diff.getSrc() + " does not have the same content as the input repository file. The conversion will add/remove some mappings");
+                    System.out.println("WARNING: The output repository file " + srcPath + " does not have the same content as the input repository file. The conversion will add/remove some mappings");
                 }
 
                 List<String> inputSrcFileLines = Files.readAllLines(inputSrcFile);
                 List<String> inputDstFileLines = Patch.applyDiff(inputSrcFileLines, diff);
-                Path outputDstFile = outputPath.resolve(diff.getDst());
 
                 EnigmaFile remappedInputDstEnigmaFile = readAndRemapFileLines(inputDstFileLines, inputToOutput);
                 if (renamedFile) {
-                    Files.deleteIfExists(outputSrcFile);
+                    modifiedPaths.add(srcPath);
+                    modifiedFiles.put(srcPath, null);
                 }
-                remappedInputDstEnigmaFile.export(outputDstFile);
+                modifiedPaths.add(dstPath);
+                modifiedFiles.put(dstPath, remappedInputDstEnigmaFile.toString());
             }
         }
     }
@@ -138,5 +197,22 @@ public class PatchFileConverter {
                 return original;
             }
         });
+    }
+
+    protected static void applyModifiedFiles(Path outputPath, Map<Path, String> modifiedFiles) throws IOException {
+        for (Map.Entry<Path, String> entry : modifiedFiles.entrySet()) {
+            applyModifiedFile(outputPath, entry.getKey(), entry.getValue());
+        }
+    }
+
+    private static void applyModifiedFile(Path outputPath, Path path, String content) throws IOException {
+        if (content == null) {
+            Files.deleteIfExists(outputPath.resolve(path));
+        } else {
+            if (!Files.exists(outputPath.resolve(path.getParent()))) {
+                Files.createDirectories(outputPath.resolve(path.getParent()));
+            }
+            Files.writeString(outputPath.resolve(path), content);
+        }
     }
 }
