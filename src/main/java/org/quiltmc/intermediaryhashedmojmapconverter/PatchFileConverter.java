@@ -40,31 +40,18 @@ import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 public class PatchFileConverter {
-    private static MappingSet inputToOutput;
-    private static Path inputRepo;
-    private static Path outputRepo;
-    private final Path patchFile;
-    private final Path convertedFile;
-
-    public PatchFileConverter(Path patchFile, Path outputFile) {
-        this.patchFile = patchFile;
-        this.convertedFile = outputFile;
-    }
-
     public static void main(String[] args) throws IOException {
         if (args.length != 8) {
-            System.err.println("Usage is <patchespath> <inputmappings> <inputnamespace> <outputpath> <outputmappings> <outputnamespace> <inputrepo> <outputrepo>");
+            System.err.println("Usage is <patchespath> <inputmappings> <inputnamespace> <outputpath> <outputmappings> <outputnamespace> <inputrepo>");
             System.exit(-1);
         }
 
         Path patchesPath = Path.of(args[0]);
         Path outputPath = Path.of(args[3]);
-        Files.createDirectories(outputPath);
 
         MappingSet inputToOutput = Util.createInputToOutputMappings(args[1], args[2], args[4], args[5]);
 
         Path inputRepo = Path.of(args[6]);
-        Path outputRepo = Path.of(args[7]);
 
         // Check for uncommitted changes in the input repo
         String uncommittedInputRepoChanges = Util.getUncommittedChanges(inputRepo);
@@ -86,7 +73,7 @@ public class PatchFileConverter {
             inProgress.add(patchFile);
             executor.execute(() -> {
                 try {
-                    PatchFileConverter.convertFile(patchFile, inputToOutput, inputRepo, outputRepo);
+                    PatchFileConverter.convertFile(patchFile, inputToOutput, inputRepo, outputPath);
                 } catch (Throwable t) {
                     System.err.println("Failed to convert " + patchFile);
                     t.printStackTrace();
@@ -109,7 +96,7 @@ public class PatchFileConverter {
         Util.runGitCommand(inputRepo, "checkout", inputRepoHead);
     }
 
-    public static void convertFile(Path patchFile, MappingSet inputToOutput, Path inputRepo, Path outputRepo) throws IOException {
+    public static void convertFile(Path patchFile, MappingSet inputToOutput, Path inputRepo, Path outputPath) throws IOException {
         Patch patch = Patch.read(patchFile);
 
         for (Diff diff : patch.getDiffs()) {
@@ -121,7 +108,7 @@ public class PatchFileConverter {
                 throw new IllegalStateException("Patch file " + patchFile + " contains a diff pointing to a null file");
             } else if (deletedFile) {
                 // Delete the file
-                Files.deleteIfExists(outputRepo.resolve(diff.getSrc()));
+                Files.deleteIfExists(outputPath.resolve(diff.getSrc()));
             } else if (newFile) {
                 Path inputFile = inputRepo.resolve(diff.getDst());
 
@@ -134,10 +121,10 @@ public class PatchFileConverter {
                 }
 
                 EnigmaFile remappedFile = readAndRemapFile(inputFile, inputToOutput);
-                remappedFile.export(outputRepo.resolve(diff.getDst()));
+                remappedFile.export(outputPath.resolve(diff.getDst()));
             } else {
                 Path inputSrcFile = inputRepo.resolve(diff.getSrc());
-                Path outputSrcFile = outputRepo.resolve(diff.getSrc());
+                Path outputSrcFile = outputPath.resolve(diff.getSrc());
 
                 // Checkout commit before the patch in the input repo
                 String fromLine = patch.getHeader().get(0);
@@ -155,7 +142,7 @@ public class PatchFileConverter {
 
                 List<String> inputSrcFileLines = Files.readAllLines(inputSrcFile);
                 List<String> inputDstFileLines = Patch.applyDiff(inputSrcFileLines, diff);
-                Path outputDstFile = outputRepo.resolve(diff.getDst());
+                Path outputDstFile = outputPath.resolve(diff.getDst());
 
                 EnigmaFile remappedInputDstEnigmaFile = readAndRemapFileLines(inputDstFileLines, inputToOutput);
                 if (renamedFile) {

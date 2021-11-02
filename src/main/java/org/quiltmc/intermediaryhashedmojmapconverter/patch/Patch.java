@@ -203,6 +203,36 @@ public class Patch {
         return out;
     }
 
+    public List<String> getModifiedFiles() {
+        List<String> dstFiles = new ArrayList<>();
+        for (Diff diff : diffs) {
+            if (!diff.getDst().equals("/dev/null")) {
+                dstFiles.add(diff.getDst());
+            }
+        }
+        return dstFiles;
+    }
+
+    public List<String> getRemovedFiles() {
+        List<String> removedFiles = new ArrayList<>();
+        for (Diff diff : diffs) {
+            if (diff.getDst().equals("/dev/null")) {
+                removedFiles.add(diff.getSrc());
+            }
+        }
+        return removedFiles;
+    }
+
+    public List<String> getAddedFiles() {
+        List<String> addedFiles = new ArrayList<>();
+        for (Diff diff : diffs) {
+            if (diff.getSrc().equals("/dev/null")) {
+                addedFiles.add(diff.getDst());
+            }
+        }
+        return addedFiles;
+    }
+
     public String export() {
         StringBuilder out = new StringBuilder();
         for (String line : this.getHeader()) {
