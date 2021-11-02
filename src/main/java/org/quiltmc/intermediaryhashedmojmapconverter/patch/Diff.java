@@ -3,14 +3,14 @@ package org.quiltmc.intermediaryhashedmojmapconverter.patch;
 import java.util.List;
 
 public class Diff {
-    private final String from;
-    private final String to;
+    private final String src;
+    private final String dst;
     private final List<DiffBlock> blocks;
     private final List<String> info;
 
-    public Diff(String from, String to, List<DiffBlock> blocks, List<String> info) {
-        this.from = from;
-        this.to = to;
+    public Diff(String src, String dst, List<DiffBlock> blocks, List<String> info) {
+        this.src = src;
+        this.dst = dst;
         this.blocks = blocks;
         this.info = info;
     }
@@ -22,9 +22,9 @@ public class Diff {
             out.append("\n");
         }
         out.append("--- ");
-        out.append(this.getFrom().startsWith("/") ? this.getFrom() : "a/" + this.getFrom());
+        out.append(this.getSrc().startsWith("/") ? this.getSrc() : "a/" + this.getSrc());
         out.append("\n+++ ");
-        out.append(this.getTo().startsWith("/") ? this.getTo() : "b/" + this.getTo());
+        out.append(this.getDst().startsWith("/") ? this.getDst() : "b/" + this.getDst());
         out.append("\n");
         for (DiffBlock block : this.getBlocks()) {
             out.append(block.export());
@@ -32,12 +32,12 @@ public class Diff {
         return out.toString();
     }
 
-    public String getFrom() {
-        return this.from;
+    public String getSrc() {
+        return this.src;
     }
 
-    public String getTo() {
-        return this.to;
+    public String getDst() {
+        return this.dst;
     }
 
     public List<DiffBlock> getBlocks() {

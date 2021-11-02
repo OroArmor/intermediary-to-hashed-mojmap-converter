@@ -26,8 +26,8 @@ public class Patch {
 
         // Diff data
         boolean readingDiff = false;
-        String diffFrom = "";
-        String diffTo = "";
+        String diffSrc = "";
+        String diffDest = "";
         List<DiffBlock> diffBlocks = new ArrayList<>();
         List<String> diffInfo = new ArrayList<>();
 
@@ -49,10 +49,10 @@ public class Patch {
                     readingDiff = true;
                 } else {
                     // Save current diff
-                    diffs.add(new Diff(diffFrom, diffTo, List.copyOf(diffBlocks), List.copyOf(diffInfo)));
+                    diffs.add(new Diff(diffSrc, diffDest, List.copyOf(diffBlocks), List.copyOf(diffInfo)));
                     // Clear diff data
-                    diffFrom = "";
-                    diffTo = "";
+                    diffSrc = "";
+                    diffDest = "";
                     diffBlocks.clear();
                     diffInfo.clear();
                     // Clear block data
@@ -88,8 +88,8 @@ public class Patch {
                 if (line.startsWith("--- ") && line.length() > 4 && l < lines.size() - 1) {
                     String nextLine = lines.get(l + 1);
                     if (nextLine.startsWith("+++ ") && nextLine.length() > 4) {
-                        diffFrom = skipPathPrefix(line.substring(4));
-                        diffTo = skipPathPrefix(nextLine.substring(4));
+                        diffSrc = skipPathPrefix(line.substring(4));
+                        diffDest = skipPathPrefix(nextLine.substring(4));
                         ++l; // skip a line
                     }
                 } else if (line.startsWith("@@")) {
@@ -135,7 +135,7 @@ public class Patch {
 
         // Save the last diff
         if (!diffInfo.isEmpty()) {
-            diffs.add(new Diff(diffFrom, diffTo, List.copyOf(diffBlocks), List.copyOf(diffInfo)));
+            diffs.add(new Diff(diffSrc, diffDest, List.copyOf(diffBlocks), List.copyOf(diffInfo)));
         }
 
         return new Patch(header, diffs, footer);
