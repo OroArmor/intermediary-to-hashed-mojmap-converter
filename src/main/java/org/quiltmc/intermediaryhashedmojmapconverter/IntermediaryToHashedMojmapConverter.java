@@ -61,6 +61,7 @@ public class IntermediaryToHashedMojmapConverter {
             if (!successful) {
                 System.err.println("Executor failed to stop.");
                 inProgress.forEach(System.out::println);
+                executor.shutdownNow();
             }
         } catch (InterruptedException e) {
             e.printStackTrace();

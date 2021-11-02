@@ -1,10 +1,7 @@
 package org.quiltmc.intermediaryhashedmojmapconverter;
 
-import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.ClassMapping;
-import org.cadixdev.lorenz.model.FieldMapping;
-import org.cadixdev.lorenz.model.MethodMapping;
 import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaFile;
 import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaReader;
 import org.quiltmc.intermediaryhashedmojmapconverter.patch.Diff;
@@ -15,16 +12,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class PatchFileConverter {
     public static void main(String[] args) throws IOException {
-        if (args.length != 8) {
+        if (args.length != 7) {
             System.err.println("Usage is <patchespath> <inputmappings> <inputnamespace> <outputpath> <outputmappings> <outputnamespace> <inputrepo>");
             System.exit(-1);
         }
@@ -49,30 +41,14 @@ public class PatchFileConverter {
 
         List<Path> patchFiles = Util.walkDirectoryAndCollectFiles(patchesPath);
 
-        Set<Path> inProgress = new HashSet<>();
-        ExecutorService executor = Executors.newFixedThreadPool(8);
-
         for (Path patchFile : patchFiles) {
-            inProgress.add(patchFile);
-            executor.execute(() -> {
-                try {
-                    PatchFileConverter.convertFile(patchFile, inputToOutput, inputRepo, outputPath);
-                } catch (Throwable t) {
-                    System.err.println("Failed to convert " + patchFile);
-                    t.printStackTrace();
-                }
-                inProgress.remove(patchFile);
-            });
-        }
-
-        try {
-            boolean successful = executor.awaitTermination(100, TimeUnit.SECONDS);
-            if (!successful) {
-                System.err.println("Executor failed to stop.");
-                inProgress.forEach(System.out::println);
+            try {
+                System.out.println("Converting " + patchFile);
+                PatchFileConverter.convertFile(patchFile, inputToOutput, inputRepo, outputPath);
+            } catch (Throwable t) {
+                System.err.println("Failed to convert " + patchFile);
+                t.printStackTrace();
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
 
         // Reset the input repo to how it was before
@@ -108,6 +84,10 @@ public class PatchFileConverter {
             } else {
                 Path inputSrcFile = inputRepo.resolve(diff.getSrc());
                 Path outputSrcFile = outputPath.resolve(diff.getSrc());
+                if (!Files.exists(outputSrcFile)) {
+                    System.err.println("File " + diff.getSrc() + " does not exist in the output repository");
+                    continue;
+                }
 
                 // Checkout commit before the patch in the input repo
                 String fromLine = patch.getHeader().get(0);
