@@ -14,11 +14,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.cadixdev.bombe.type.signature.MethodSignature;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.model.ClassMapping;
-import org.cadixdev.lorenz.model.FieldMapping;
-import org.cadixdev.lorenz.model.MethodMapping;
 import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaFile;
 import org.quiltmc.intermediaryhashedmojmapconverter.engima.EnigmaReader;
 
@@ -68,19 +65,25 @@ public class IntermediaryToHashedMojmapConverter {
         }
     }
 
-    private static void remapAndOutputFile(Path inputPath, Path outputPath, MappingSet inputToOutput) throws IOException {
+    private static void remapAndOutputFile(Path file, Path outputPath, MappingSet inputToOutput) throws IOException {
         Deque<ClassMapping<?, ?>> mappings = new ArrayDeque<>();
 
-        EnigmaFile transformed = EnigmaReader.readFile(inputPath, (type, original, signature, isMethod) -> {
+        EnigmaFile transformed = EnigmaReader.readFile(file, (type, original, signature, isMethod) -> {
             try {
                 return Util.remapObfuscated(type, original, signature, isMethod, inputToOutput, mappings);
             } catch (Exception e) {
-                System.err.println("Error finding mapping for " + original + " with type " + type + " in file " + inputPath);
+                System.err.println("Error finding mapping for " + original + " with type " + type + " in file " + file);
                 return original;
             }
         });
 
         String name = transformed.getEnigmaClass().getMappedName();
-        transformed.export(outputPath.resolve((name.isEmpty() ? transformed.getEnigmaClass().getObfuscatedName() : name) + ".mapping"));
+        String fileName = (name.isEmpty() ? transformed.getEnigmaClass().getObfuscatedName() : name) + ".mapping";
+        transformed.export(outputPath.resolve(fileName));
+
+        // Remove the old file if the new one has a different name
+        if (!file.endsWith(fileName)) {
+            Files.deleteIfExists(file);
+        }
     }
 }
