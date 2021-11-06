@@ -123,9 +123,15 @@ public class PatchFileConverter {
             if (newFile && deletedFile) {
                 throw new IllegalStateException("Patch file " + patchFile + " contains a diff pointing to a null file");
             } else if (deletedFile) {
+                if (!diff.getSrc().endsWith(".mapping")) {
+                    continue;
+                }
                 modifiedPaths.add(srcPath);
                 modifiedFiles.put(srcPath, null);
             } else if (newFile) {
+                if (!diff.getDst().endsWith(".mapping")) {
+                    continue;
+                }
                 Path inputFile = inputRepo.resolve(dstPath);
 
                 // Checkout patch commit in the input repo
@@ -140,6 +146,9 @@ public class PatchFileConverter {
                 modifiedPaths.add(dstPath);
                 modifiedFiles.put(dstPath, remappedFile.toString());
             } else {
+                if (!diff.getSrc().endsWith(".mapping")) {
+                    continue;
+                }
                 Path inputSrcFile = inputRepo.resolve(srcPath);
                 Path outputSrcFile = outputPath.resolve(srcPath);
                 if (!Files.exists(outputSrcFile)) {
