@@ -4,29 +4,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DiffBlock {
-    private final int sourceLine;
-    private final int sourceSize;
-    private final int destLine;
-    private final int destSize;
+    private final int srcLine;
+    private final int srcSize;
+    private final int dstLine;
+    private final int dstSize;
     private final List<DiffLine> diffLines;
 
-    public DiffBlock(int sourceLine, int sourceSize, int destLine, int destSize, List<DiffLine> diffLines) {
-        this.sourceLine = sourceLine;
-        this.sourceSize = sourceSize;
-        this.destLine = destLine;
-        this.destSize = destSize;
+    public DiffBlock(int srcLine, int srcSize, int dstLine, int dstSize, List<DiffLine> diffLines) {
+        this.srcLine = srcLine;
+        this.srcSize = srcSize;
+        this.dstLine = dstLine;
+        this.dstSize = dstSize;
         this.diffLines = diffLines;
     }
 
     public String export() {
         StringBuilder out = new StringBuilder("@@ -");
-        out.append(this.sourceLine);
+        out.append(this.srcLine);
         out.append(",");
-        out.append(this.sourceSize);
+        out.append(this.srcSize);
         out.append(" +");
-        out.append(this.destLine);
+        out.append(this.dstLine);
         out.append(",");
-        out.append(this.destSize);
+        out.append(this.dstSize);
         out.append(" @@\n");
         for (String line : this.getDiff()) {
             out.append(line);
@@ -59,23 +59,23 @@ public class DiffBlock {
         return this.diffLines;
     }
 
-    public int getSourceLine() {
-        return this.sourceLine;
+    public int getSrcLine() {
+        return this.srcLine;
     }
 
-    public int getSourceSize() {
-        return this.sourceSize;
+    public int getSrcSize() {
+        return this.srcSize;
     }
 
-    public int getDestLine() {
-        return this.destLine;
+    public int getDstLine() {
+        return this.dstLine;
     }
 
-    public int getDestSize() {
-        return this.destSize;
+    public int getDstSize() {
+        return this.dstSize;
     }
 
-    public int getSourceLineNumber(DiffLine line) {
+    public int getSrcLineNumber(DiffLine line) {
         if (!line.getType().increasesSourceLineNumber()) {
             throw new IllegalArgumentException();
         }
@@ -83,7 +83,7 @@ public class DiffBlock {
             DiffLine diffLine = diffLines.get(i);
             if (diffLine.getType().increasesSourceLineNumber()) {
                 if (line.equals(diffLine)) {
-                    return sourceLine + j;
+                    return srcLine + j;
                 }
                 ++j;
             }
@@ -91,7 +91,7 @@ public class DiffBlock {
         return -1;
     }
 
-    public int getDestLineNumber(DiffLine line) {
+    public int getDstLineNumber(DiffLine line) {
         if (!line.getType().increasesDestLineNumber()) {
             throw new IllegalArgumentException();
         }
@@ -99,7 +99,7 @@ public class DiffBlock {
             DiffLine diffLine = diffLines.get(i);
             if (diffLine.getType().increasesDestLineNumber()) {
                 if (line.equals(diffLine)) {
-                    return destLine + j;
+                    return dstLine + j;
                 }
                 ++j;
             }

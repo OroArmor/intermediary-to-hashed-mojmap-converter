@@ -11,7 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Patch {
-    private static final Pattern BLOCK_HEADER_REGEX = Pattern.compile("@@ -([\\d]+),([\\d]+) \\+([\\d]+),([\\d]+) @@");
+    private static final Pattern BLOCK_HEADER_REGEX = Pattern.compile("@@ -([\\d]+)(?:,([\\d]+))? \\+([\\d]+)(?:,([\\d]+))? @@");
     private final List<String> header;
     private final List<Diff> diffs;
     private final List<String> footer;
@@ -27,19 +27,19 @@ public class Patch {
         // Diff data
         boolean readingDiff = false;
         String diffSrc = "";
-        String diffDest = "";
+        String diffDst = "";
         List<DiffBlock> diffBlocks = new ArrayList<>();
         List<String> diffInfo = new ArrayList<>();
 
         // Block data
         boolean readingBlock = false;
         List<DiffLine> blockDiffLines = new ArrayList<>();
-        int blockFromLine = -1;
-        int blockFromSize = -1;
-        int blockFromRemaining = -1;
-        int blockToLine = -1;
-        int blockToSize = -1;
-        int blockToRemaining = -1;
+        int blockSrcLine = -1;
+        int blockSrcSize = -1;
+        int blockSrcRemaining = -1;
+        int blockDstLine = -1;
+        int blockDstSize = -1;
+        int blockDstRemaining = -1;
 
         for (int l = 0; l < lines.size(); ++l) {
             String line = lines.get(l);
@@ -49,21 +49,21 @@ public class Patch {
                     readingDiff = true;
                 } else {
                     // Save current diff
-                    diffs.add(new Diff(diffSrc, diffDest, List.copyOf(diffBlocks), List.copyOf(diffInfo)));
+                    diffs.add(new Diff(diffSrc, diffDst, List.copyOf(diffBlocks), List.copyOf(diffInfo)));
                     // Clear diff data
                     diffSrc = "";
-                    diffDest = "";
+                    diffDst = "";
                     diffBlocks.clear();
                     diffInfo.clear();
                     // Clear block data
                     readingBlock = false;
                     blockDiffLines.clear();
-                    blockFromLine = -1;
-                    blockFromSize = -1;
-                    blockFromRemaining = -1;
-                    blockToLine = -1;
-                    blockToSize = -1;
-                    blockToRemaining = -1;
+                    blockSrcLine = -1;
+                    blockSrcSize = -1;
+                    blockSrcRemaining = -1;
+                    blockDstLine = -1;
+                    blockDstSize = -1;
+                    blockDstRemaining = -1;
                 }
 
                 diffInfo.add(line); // save command
@@ -89,7 +89,7 @@ public class Patch {
                     String nextLine = lines.get(l + 1);
                     if (nextLine.startsWith("+++ ") && nextLine.length() > 4) {
                         diffSrc = skipPathPrefix(line.substring(4));
-                        diffDest = skipPathPrefix(nextLine.substring(4));
+                        diffDst = skipPathPrefix(nextLine.substring(4));
                         ++l; // skip a line
                     }
                 } else if (line.startsWith("@@")) {
@@ -97,13 +97,23 @@ public class Patch {
                     Matcher matcher = BLOCK_HEADER_REGEX.matcher(line);
                     if (matcher.find()) {
                         readingBlock = true;
-                        blockFromLine = Integer.parseInt(matcher.group(1));
-                        blockFromSize = Integer.parseInt(matcher.group(2));
-                        blockToLine = Integer.parseInt(matcher.group(3));
-                        blockToSize = Integer.parseInt(matcher.group(4));
+                        blockSrcLine = Integer.parseInt(matcher.group(1));
+                        if (matcher.group(2) != null && !matcher.group(2).isEmpty()) {
+                            blockSrcSize = Integer.parseInt(matcher.group(2));
+                        } else {
+                            blockSrcSize = 1;
+                        }
+                        blockDstLine = Integer.parseInt(matcher.group(3));
+                        if (matcher.group(4) != null && !matcher.group(4).isEmpty()) {
+                            blockDstSize = Integer.parseInt(matcher.group(4));
+                        } else {
+                            blockDstSize = 1;
+                        }
 
-                        blockFromRemaining = blockFromSize;
-                        blockToRemaining = blockToSize;
+                        blockSrcRemaining = blockSrcSize;
+                        blockDstRemaining = blockDstSize;
+                    } else {
+                        throw new IllegalStateException("Invalid block header " + line);
                     }
                 } else {
                     diffInfo.add(line);
@@ -115,27 +125,27 @@ public class Patch {
             String fileLine = line.substring(1); // remove diff indent
             if (line.startsWith("-")) {
                 blockDiffLines.add(new DiffLine(fileLine, DiffLine.LineType.REMOVED));
-                --blockFromRemaining;
+                --blockSrcRemaining;
             } else if (line.startsWith("+")) {
                 blockDiffLines.add(new DiffLine(fileLine, DiffLine.LineType.ADDED));
-                --blockToRemaining;
+                --blockDstRemaining;
             } else {
                 blockDiffLines.add(new DiffLine(fileLine, DiffLine.LineType.UNCHANGED));
-                --blockFromRemaining;
-                --blockToRemaining;
+                --blockSrcRemaining;
+                --blockDstRemaining;
             }
 
             // Block end
-            if (blockFromRemaining <= 0 && blockToRemaining <= 0) {
+            if (blockSrcRemaining <= 0 && blockDstRemaining <= 0) {
                 readingBlock = false;
-                diffBlocks.add(new DiffBlock(blockFromLine, blockFromSize, blockToLine, blockToSize, List.copyOf(blockDiffLines)));
+                diffBlocks.add(new DiffBlock(blockSrcLine, blockSrcSize, blockDstLine, blockDstSize, List.copyOf(blockDiffLines)));
                 blockDiffLines.clear();
             }
         }
 
         // Save the last diff
         if (!diffInfo.isEmpty()) {
-            diffs.add(new Diff(diffSrc, diffDest, List.copyOf(diffBlocks), List.copyOf(diffInfo)));
+            diffs.add(new Diff(diffSrc, diffDst, List.copyOf(diffBlocks), List.copyOf(diffInfo)));
         }
 
         return new Patch(header, diffs, footer);
@@ -181,7 +191,7 @@ public class Patch {
         List<String> out = new ArrayList<>();
         int i = 0;
         for (DiffBlock block : diff.getBlocks()) {
-            for (int j = i; j < block.getSourceLine() - 1; ++j, ++i) {
+            for (int j = i; j < block.getSrcLine() - 1; ++j, ++i) {
                 out.add(lines.get(j));
             }
             for (DiffLine diffLine : block.getDiffLines()) {
