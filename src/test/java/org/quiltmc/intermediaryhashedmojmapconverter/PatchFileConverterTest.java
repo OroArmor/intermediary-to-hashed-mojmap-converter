@@ -11,7 +11,10 @@ import org.quiltmc.intermediaryhashedmojmapconverter.patch.Patch;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -68,7 +71,10 @@ public class PatchFileConverterTest {
     @MethodSource("provideConvertPatchFileArguments")
     public void testConvertPatchFile(Path path, Path relative) throws IOException {
         Patch patch = Patch.read(path);
-        PatchFileConverter.convertFile(path, inputToOutput, INPUT_REPO_PATH, OUTPUTS_DIR);
+        Map<Path, String> modifiedFiles = new HashMap<>();
+        PatchFileConverter.convertFile(path, inputToOutput, INPUT_REPO_PATH, OUTPUTS_DIR, new ArrayList<>(), modifiedFiles);
+
+        PatchFileConverter.applyModifiedFiles(OUTPUTS_DIR, modifiedFiles);
 
         for (String removedFile : patch.getRemovedFiles()) {
             assertFalse(Files.exists(OUTPUTS_DIR.resolve(removedFile)), "The file " + removedFile + " was not removed");
